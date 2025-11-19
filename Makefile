@@ -191,17 +191,10 @@ docker-stop-conflicts: docker-check ## Остановить процессы, к
 		lsof -ti:8000 | xargs kill -9 2>/dev/null || true; \
 		sleep 1; \
 	fi
-	@if docker info >/dev/null 2>&1; then \
-		if docker ps --format '{{.Ports}}' 2>/dev/null | grep -q ':8000->'; then \
-			echo "$(YELLOW)⚠ Порт 8000 занят Docker контейнером. Останавливаю...$(NC)"; \
-			$(DOCKER_COMPOSE) down 2>/dev/null || true; \
-			sleep 2; \
-		fi; \
-		if docker ps --format '{{.Ports}}' 2>/dev/null | grep -q ':3000->'; then \
-			echo "$(YELLOW)⚠ Порт 3000 занят Docker контейнером. Останавливаю...$(NC)"; \
-			$(DOCKER_COMPOSE) down 2>/dev/null || true; \
-			sleep 2; \
-		fi; \
+	@if docker ps --format '{{.Ports}}' 2>/dev/null | grep -q ':8000->\|:3000->'; then \
+		echo "$(YELLOW)⚠ Порты заняты Docker контейнерами. Останавливаю...$(NC)"; \
+		$(DOCKER_COMPOSE) down 2>/dev/null || true; \
+		sleep 2; \
 	fi
 	@echo "$(GREEN)✓ Конфликты разрешены$(NC)"
 
@@ -212,35 +205,15 @@ docker-up: docker-check docker-stop-conflicts ## Запустить все се�
 		cp $(BACKEND_DIR)/env.example $(BACKEND_DIR)/.env; \
 		echo "$(YELLOW)⚠ ВАЖНО: Отредактируйте backend/.env и установите SECRET_KEY!$(NC)"; \
 	fi
-	@echo "$(YELLOW)Проверка подключения к Docker перед запуском...$(NC)"
-	@if ! docker info >/dev/null 2>&1; then \
-		echo "$(YELLOW)⚠ Docker daemon недоступен после остановки конфликтов!$(NC)"; \
-		echo "$(YELLOW)Ожидание стабилизации Docker...$(NC)"; \
-		sleep 3; \
-		i=1; \
-		while [ $$i -le 3 ]; do \
-			if docker info >/dev/null 2>&1; then \
-				echo "$(GREEN)✓ Docker готов$(NC)"; \
-				break; \
-			fi; \
-			if [ $$i -eq 3 ]; then \
-				echo "$(YELLOW)⚠ Docker daemon недоступен!$(NC)"; \
-				echo "$(YELLOW)Попробуйте запустить Docker Desktop: open -a Docker$(NC)"; \
-				exit 1; \
-			fi; \
-			echo "$(YELLOW)Ожидание Docker daemon... (попытка $$i/3)$(NC)"; \
-			sleep 2; \
-			i=$$((i + 1)); \
-		done; \
-	else \
-		echo "$(GREEN)✓ Docker готов$(NC)"; \
-	fi
 	@$(DOCKER_COMPOSE) up -d || { \
 		echo "$(YELLOW)⚠ Ошибка при запуске $(DOCKER_COMPOSE).$(NC)"; \
 		echo "$(YELLOW)Проверьте:$(NC)"; \
 		echo "  1. Docker Desktop запущен: open -a Docker"; \
-		echo "  2. Docker daemon готов: docker info"; \
+		echo "  2. Docker daemon готов: docker ps"; \
 		echo "  3. $(DOCKER_COMPOSE) доступен: $(DOCKER_COMPOSE) version"; \
+		echo ""; \
+		echo "$(YELLOW)Попробуйте вручную:$(NC)"; \
+		echo "  $(DOCKER_COMPOSE) up -d"; \
 		exit 1; \
 	}
 	@echo "$(GREEN)✓ Сервисы запущены$(NC)"
