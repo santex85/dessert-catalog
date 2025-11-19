@@ -209,13 +209,25 @@ docker-up: docker-check docker-stop-conflicts ## Запустить все се�
 		echo "$(YELLOW)⚠ ВАЖНО: Отредактируйте backend/.env и установите SECRET_KEY!$(NC)"; \
 	fi
 	@echo "$(YELLOW)Проверка подключения к Docker перед запуском...$(NC)"
-	@if ! docker info >/dev/null 2>&1; then \
-		echo "$(YELLOW)⚠ Docker daemon недоступен! Попробуйте запустить Docker Desktop.$(NC)"; \
-		exit 1; \
-	fi
+	@for i in 1 2 3; do \
+		if docker info >/dev/null 2>&1 && docker-compose version >/dev/null 2>&1; then \
+			echo "$(GREEN)✓ Docker готов$(NC)"; \
+			break; \
+		fi; \
+		if [ $$i -eq 3 ]; then \
+			echo "$(YELLOW)⚠ Docker daemon недоступен после 3 попыток!$(NC)"; \
+			echo "$(YELLOW)Попробуйте запустить Docker Desktop: open -a Docker$(NC)"; \
+			exit 1; \
+		fi; \
+		echo "$(YELLOW)Ожидание Docker daemon... (попытка $$i/3)$(NC)"; \
+		sleep 2; \
+	done
 	@docker-compose up -d || { \
-		echo "$(YELLOW)⚠ Ошибка при запуске docker-compose. Проверьте, что Docker полностью запущен.$(NC)"; \
-		echo "$(YELLOW)Попробуйте: open -a Docker$(NC)"; \
+		echo "$(YELLOW)⚠ Ошибка при запуске docker-compose.$(NC)"; \
+		echo "$(YELLOW)Проверьте:$(NC)"; \
+		echo "  1. Docker Desktop запущен: open -a Docker"; \
+		echo "  2. Docker daemon готов: docker info"; \
+		echo "  3. docker-compose доступен: docker-compose version"; \
 		exit 1; \
 	}
 	@echo "$(GREEN)✓ Сервисы запущены$(NC)"
