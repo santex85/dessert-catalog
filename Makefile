@@ -166,11 +166,17 @@ status: ## Показать статус сервисов
 
 # Docker Compose commands
 docker-check: ## Проверить, что Docker запущен
+	@echo "$(YELLOW)Проверка Docker daemon...$(NC)"
 	@if ! docker info >/dev/null 2>&1; then \
 		echo "$(YELLOW)⚠ Docker daemon не запущен!$(NC)"; \
 		echo "$(YELLOW)Запустите Docker Desktop или выполните:$(NC)"; \
 		echo "  open -a Docker"; \
 		echo ""; \
+		echo "$(YELLOW)Подождите, пока Docker полностью запустится, затем попробуйте снова.$(NC)"; \
+		exit 1; \
+	fi
+	@if ! docker-compose version >/dev/null 2>&1; then \
+		echo "$(YELLOW)⚠ docker-compose не доступен!$(NC)"; \
 		exit 1; \
 	fi
 	@echo "$(GREEN)✓ Docker daemon запущен$(NC)"
@@ -202,7 +208,16 @@ docker-up: docker-check docker-stop-conflicts ## Запустить все се�
 		cp $(BACKEND_DIR)/env.example $(BACKEND_DIR)/.env; \
 		echo "$(YELLOW)⚠ ВАЖНО: Отредактируйте backend/.env и установите SECRET_KEY!$(NC)"; \
 	fi
-	@docker-compose up -d
+	@echo "$(YELLOW)Проверка подключения к Docker перед запуском...$(NC)"
+	@if ! docker info >/dev/null 2>&1; then \
+		echo "$(YELLOW)⚠ Docker daemon недоступен! Попробуйте запустить Docker Desktop.$(NC)"; \
+		exit 1; \
+	fi
+	@docker-compose up -d || { \
+		echo "$(YELLOW)⚠ Ошибка при запуске docker-compose. Проверьте, что Docker полностью запущен.$(NC)"; \
+		echo "$(YELLOW)Попробуйте: open -a Docker$(NC)"; \
+		exit 1; \
+	}
 	@echo "$(GREEN)✓ Сервисы запущены$(NC)"
 	@echo "$(YELLOW)Frontend:$(NC) http://localhost:3000"
 	@echo "$(YELLOW)Backend:$(NC) http://localhost:8000"
