@@ -6,7 +6,7 @@ set -e
 
 echo "🔍 Проверка Docker Desktop..."
 
-# Проверяем, запущен ли Docker Desktop
+# Проверяем, запущен ли Docker Desktop процесс
 if ! pgrep -f "Docker Desktop" > /dev/null; then
     echo "⚠️  Docker Desktop не запущен. Запускаю..."
     open -a Docker
@@ -14,30 +14,39 @@ if ! pgrep -f "Docker Desktop" > /dev/null; then
     sleep 10
 fi
 
-# Ждем, пока Docker daemon станет доступен
-echo "⏳ Ожидание Docker daemon..."
-MAX_ATTEMPTS=30
-ATTEMPT=1
-
-while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-    if docker info >/dev/null 2>&1; then
-        echo "✅ Docker daemon доступен!"
-        break
-    fi
+# Проверяем Docker daemon (быстрая проверка)
+if docker info >/dev/null 2>&1; then
+    echo "✅ Docker daemon доступен!"
+else
+    echo "⏳ Ожидание Docker daemon..."
+    MAX_ATTEMPTS=15
+    ATTEMPT=1
     
-    if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-        echo "❌ Docker daemon недоступен после $MAX_ATTEMPTS попыток"
-        echo "Попробуйте:"
-        echo "  1. Открыть Docker Desktop вручную"
-        echo "  2. Подождать, пока он полностью загрузится"
-        echo "  3. Запустить: docker compose up -d"
-        exit 1
-    fi
-    
-    echo "   Попытка $ATTEMPT/$MAX_ATTEMPTS..."
-    sleep 2
-    ATTEMPT=$((ATTEMPT + 1))
-done
+    while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+        if docker info >/dev/null 2>&1; then
+            echo "✅ Docker daemon доступен!"
+            break
+        fi
+        
+        if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+            echo "❌ Docker daemon недоступен после $MAX_ATTEMPTS попыток"
+            echo ""
+            echo "Попробуйте:"
+            echo "  1. Открыть Docker Desktop вручную: open -a Docker"
+            echo "  2. Подождать 30-60 секунд, пока он полностью загрузится"
+            echo "  3. Проверить: docker info"
+            echo "  4. Запустить напрямую: docker compose up -d"
+            exit 1
+        fi
+        
+        # Показываем прогресс только каждые 3 попытки
+        if [ $((ATTEMPT % 3)) -eq 0 ]; then
+            echo "   Ожидание... (попытка $ATTEMPT/$MAX_ATTEMPTS)"
+        fi
+        sleep 2
+        ATTEMPT=$((ATTEMPT + 1))
+    done
+fi
 
 # Освобождаем порты, если они заняты
 echo "🔍 Проверка портов..."
