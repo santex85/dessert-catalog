@@ -56,41 +56,69 @@ fi
 # Освобождаем порты, если они заняты
 echo "🔍 Проверка портов..."
 PORTS_FREED=false
-if lsof -ti:8000 >/dev/null 2>&1; then
-    echo "⚠️  Порт 8000 занят. Освобождаю..."
-    lsof -ti:8000 | xargs kill -9 2>/dev/null || true
-    PORTS_FREED=true
-    sleep 2
-fi
 
-if lsof -ti:3000 >/dev/null 2>&1; then
-    echo "⚠️  Порт 3000 занят. Освобождаю..."
-    lsof -ti:3000 | xargs kill -9 2>/dev/null || true
-    PORTS_FREED=true
-    sleep 2
-fi
-
-# Если освобождали порты, проверяем Docker daemon снова
-if [ "$PORTS_FREED" = true ]; then
-    echo "⏳ Проверка Docker daemon после освобождения портов..."
-    if ! check_docker_daemon; then
-        echo "⚠️  Docker daemon временно недоступен. Ожидание..."
-        i=1
-        while [ $i -le 5 ]; do
-            if check_docker_daemon; then
-                echo "✅ Docker daemon снова доступен!"
-                break
-            fi
-            if [ $i -eq 5 ]; then
-                echo "❌ Docker daemon недоступен после освобождения портов"
-                echo "Попробуйте запустить Docker Desktop вручную и подождать 30 секунд"
-                exit 1
-            fi
-            echo "   Ожидание... (попытка $i/5)"
-            sleep 2
-            i=$((i + 1))
-        done
+# Функция для безопасного освобождения порта
+free_port() {
+    local PORT=$1
+    local PORT_NAME=$2
+    
+    # Сначала проверяем, не занят ли порт Docker контейнерами
+    if check_docker_daemon; then
+        local CONTAINER=$(docker ps --format "{{.Names}}" --filter "publish=$PORT" 2>/dev/null | head -1)
+        if [ -n "$CONTAINER" ]; then
+            echo "⚠️  Порт $PORT_NAME занят Docker контейнером: $CONTAINER"
+            echo "   Останавливаю контейнер через Docker..."
+            docker stop "$CONTAINER" 2>/dev/null || true
+            sleep 1
+            PORTS_FREED=true
+            return
+        fi
     fi
+    
+    # Если не Docker контейнер, проверяем локальные процессы
+    if lsof -ti:$PORT >/dev/null 2>&1; then
+        echo "⚠️  Порт $PORT_NAME занят локальным процессом. Освобождаю..."
+        # Более мягкое завершение - сначала SIGTERM, потом SIGKILL
+        lsof -ti:$PORT | xargs kill -TERM 2>/dev/null || true
+        sleep 2
+        # Если процесс еще жив, убиваем принудительно
+        if lsof -ti:$PORT >/dev/null 2>&1; then
+            lsof -ti:$PORT | xargs kill -9 2>/dev/null || true
+            sleep 1
+        fi
+        PORTS_FREED=true
+    fi
+}
+
+# Освобождаем порты
+free_port 8000 "8000"
+free_port 3000 "3000"
+
+# Если освобождали порты через kill (не через Docker), проверяем daemon
+if [ "$PORTS_FREED" = true ] && ! check_docker_daemon; then
+    echo "⏳ Проверка Docker daemon после освобождения портов..."
+    i=1
+    while [ $i -le 10 ]; do
+        if check_docker_daemon; then
+            echo "✅ Docker daemon снова доступен!"
+            break
+        fi
+        if [ $i -eq 10 ]; then
+            echo "❌ Docker daemon недоступен после освобождения портов"
+            echo ""
+            echo "Попробуйте:"
+            echo "  1. Открыть Docker Desktop: open -a Docker"
+            echo "  2. Подождать 30-60 секунд"
+            echo "  3. Проверить: docker info"
+            echo "  4. Запустить напрямую: docker compose up -d"
+            exit 1
+        fi
+        if [ $((i % 3)) -eq 0 ]; then
+            echo "   Ожидание... (попытка $i/10)"
+        fi
+        sleep 2
+        i=$((i + 1))
+    done
 fi
 
 # Останавливаем старые контейнеры, если они есть
