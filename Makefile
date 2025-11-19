@@ -46,11 +46,15 @@ run: run-backend run-frontend ## Запустить бэкенд и фронте
 
 run-backend: install-backend ## Запустить только бэкенд
 	@echo "$(GREEN)Запуск бэкенд-сервера...$(NC)"
-	@if [ ! -f "$(VENV_BIN)/uvicorn" ]; then \
+	@if [ ! -f "$(VENV_BIN)/uvicorn" ] && ! $(VENV_BIN)/python -m uvicorn --version >/dev/null 2>&1; then \
 		echo "$(YELLOW)⚠ uvicorn не найден. Устанавливаю зависимости...$(NC)"; \
 		$(MAKE) install-backend; \
 	fi
-	@cd $(BACKEND_DIR) && $(VENV_BIN)/uvicorn main:app --reload --host 0.0.0.0 --port 8000
+	@cd $(BACKEND_DIR) && if [ -f "../$(VENV_BIN)/uvicorn" ]; then \
+		../$(VENV_BIN)/uvicorn main:app --reload --host 0.0.0.0 --port 8000; \
+	else \
+		../$(VENV_BIN)/python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000; \
+	fi
 
 run-frontend: install-frontend ## Запустить только фронтенд
 	@echo "$(GREEN)Запуск фронтенд-сервера...$(NC)"
@@ -62,11 +66,15 @@ run-frontend: install-frontend ## Запустить только фронтен
 
 run-backend-bg: install-backend ## Запустить бэкенд в фоновом режиме
 	@echo "$(GREEN)Запуск бэкенд-сервера в фоне...$(NC)"
-	@if [ ! -f "$(VENV_BIN)/uvicorn" ]; then \
+	@if [ ! -f "$(VENV_BIN)/uvicorn" ] && ! $(VENV_BIN)/python -m uvicorn --version >/dev/null 2>&1; then \
 		echo "$(YELLOW)⚠ uvicorn не найден. Устанавливаю зависимости...$(NC)"; \
 		$(MAKE) install-backend; \
 	fi
-	@cd $(BACKEND_DIR) && nohup $(VENV_BIN)/uvicorn main:app --reload --host 0.0.0.0 --port 8000 > backend.log 2>&1 & echo $$! > backend.pid
+	@cd $(BACKEND_DIR) && if [ -f "../$(VENV_BIN)/uvicorn" ]; then \
+		nohup ../$(VENV_BIN)/uvicorn main:app --reload --host 0.0.0.0 --port 8000 > backend.log 2>&1 & echo $$! > backend.pid; \
+	else \
+		nohup ../$(VENV_BIN)/python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000 > backend.log 2>&1 & echo $$! > backend.pid; \
+	fi
 	@echo "$(GREEN)✓ Бэкенд запущен (PID: $$(cat $(BACKEND_DIR)/backend.pid))$(NC)"
 	@echo "Логи: tail -f $(BACKEND_DIR)/backend.log"
 
