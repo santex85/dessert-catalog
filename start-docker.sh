@@ -55,28 +55,54 @@ fi
 
 # Освобождаем порты, если они заняты
 echo "🔍 Проверка портов..."
+PORTS_FREED=false
 if lsof -ti:8000 >/dev/null 2>&1; then
     echo "⚠️  Порт 8000 занят. Освобождаю..."
     lsof -ti:8000 | xargs kill -9 2>/dev/null || true
-    sleep 1
+    PORTS_FREED=true
+    sleep 2
 fi
 
 if lsof -ti:3000 >/dev/null 2>&1; then
     echo "⚠️  Порт 3000 занят. Освобождаю..."
     lsof -ti:3000 | xargs kill -9 2>/dev/null || true
-    sleep 1
+    PORTS_FREED=true
+    sleep 2
+fi
+
+# Если освобождали порты, проверяем Docker daemon снова
+if [ "$PORTS_FREED" = true ]; then
+    echo "⏳ Проверка Docker daemon после освобождения портов..."
+    if ! check_docker_daemon; then
+        echo "⚠️  Docker daemon временно недоступен. Ожидание..."
+        i=1
+        while [ $i -le 5 ]; do
+            if check_docker_daemon; then
+                echo "✅ Docker daemon снова доступен!"
+                break
+            fi
+            if [ $i -eq 5 ]; then
+                echo "❌ Docker daemon недоступен после освобождения портов"
+                echo "Попробуйте запустить Docker Desktop вручную и подождать 30 секунд"
+                exit 1
+            fi
+            echo "   Ожидание... (попытка $i/5)"
+            sleep 2
+            i=$((i + 1))
+        done
+    fi
 fi
 
 # Останавливаем старые контейнеры, если они есть
 echo "🧹 Очистка старых контейнеров..."
-if docker compose ps 2>/dev/null | grep -q "Up\|running"; then
+if check_docker_daemon && docker compose ps 2>/dev/null | grep -q "Up\|running"; then
     docker compose down 2>/dev/null || true
     echo "⏳ Ожидание стабилизации Docker после остановки контейнеров..."
     sleep 3
     # Проверяем Docker daemon снова
     i=1
     while [ $i -le 5 ]; do
-        if docker info >/dev/null 2>&1; then
+        if check_docker_daemon; then
             echo "✅ Docker daemon снова доступен!"
             break
         fi
@@ -91,6 +117,16 @@ if docker compose ps 2>/dev/null | grep -q "Up\|running"; then
     done
 else
     echo "   Нет запущенных контейнеров"
+fi
+
+# Финальная проверка перед запуском
+if ! check_docker_daemon; then
+    echo "❌ Docker daemon недоступен перед запуском контейнеров"
+    echo "Попробуйте:"
+    echo "  1. Открыть Docker Desktop: open -a Docker"
+    echo "  2. Подождать 30-60 секунд"
+    echo "  3. Запустить: docker compose up -d"
+    exit 1
 fi
 
 # Запускаем контейнеры
