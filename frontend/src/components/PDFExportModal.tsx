@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { pdfApi } from '../services/api';
 import { PDFExportSettings, PDFTemplate } from '../types';
+import { useToast } from '../hooks/useToast';
+import { ToastContainer } from './Toast';
 
 interface PDFExportModalProps {
   selectedIds: number[];
@@ -41,6 +43,7 @@ export default function PDFExportModal({ selectedIds, onClose }: PDFExportModalP
     template: 'minimal',
   });
   const [loading, setLoading] = useState(false);
+  const { toasts, removeToast, error, success } = useToast();
 
   const handleExport = async () => {
     try {
@@ -57,24 +60,27 @@ export default function PDFExportModal({ selectedIds, onClose }: PDFExportModalP
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       
+      success('PDF generated and downloaded successfully');
       onClose();
-    } catch (error) {
-      console.error('PDF generation error:', error);
-      alert('Error generating PDF. Please try again.');
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      error('Error generating PDF. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-      onClick={onClose}
-    >
+    <>
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
       <div
-        className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+        onClick={onClose}
       >
+        <div
+          className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
+          onClick={(e) => e.stopPropagation()}
+        >
         <h2 className="text-2xl font-bold text-gray-900 mb-6">PDF Export Settings</h2>
 
         <div className="space-y-6">
@@ -198,8 +204,9 @@ export default function PDFExportModal({ selectedIds, onClose }: PDFExportModalP
             {loading ? 'Generating...' : 'Download PDF'}
           </button>
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

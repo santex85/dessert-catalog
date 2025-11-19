@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { Dessert } from '../types';
 import { dessertsApi, uploadApi } from '../services/api';
 import { getImageUrl } from '../utils/image';
+import { useToast } from '../hooks/useToast';
+import { ToastContainer } from './Toast';
+import ConfirmDialog from './ConfirmDialog';
 
 interface AdminPanelProps {
   onUpdate: () => void;
@@ -12,6 +15,8 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
   const [loading, setLoading] = useState(true);
   const [editingDessert, setEditingDessert] = useState<Dessert | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: number } | null>(null);
+  const { toasts, removeToast, error, success } = useToast();
 
   useEffect(() => {
     loadDesserts();
@@ -30,17 +35,22 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this dessert?')) {
-      return;
-    }
+    setDeleteConfirm({ id });
+  };
 
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
+    
     try {
-      await dessertsApi.delete(id);
+      await dessertsApi.delete(deleteConfirm.id);
       await loadDesserts();
       onUpdate();
-    } catch (error) {
-      console.error('Error deleting:', error);
-      alert('Error deleting dessert');
+      success('Dessert deleted successfully');
+    } catch (err) {
+      console.error('Error deleting:', err);
+      error('Error deleting dessert');
+    } finally {
+      setDeleteConfirm(null);
     }
   };
 
@@ -60,6 +70,20 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
 
   return (
     <div>
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+      
+      {deleteConfirm && (
+        <ConfirmDialog
+          title="Delete Dessert"
+          message="Are you sure you want to delete this dessert? This action cannot be undone."
+          confirmText="Delete"
+          cancelText="Cancel"
+          type="danger"
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteConfirm(null)}
+        />
+      )}
+
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-900">Dessert Management</h2>
         <button
@@ -169,6 +193,7 @@ function DessertForm({ dessert, onClose, onSave }: DessertFormProps) {
   });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const { toasts, removeToast, error, success, warning } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -181,17 +206,20 @@ function DessertForm({ dessert, onClose, onSave }: DessertFormProps) {
         await dessertsApi.create(formData as Omit<Dessert, 'id'>);
       }
       onSave();
-    } catch (error) {
-      console.error('Error saving:', error);
-      alert('Error saving dessert');
+      success(dessert ? 'Dessert updated successfully' : 'Dessert created successfully');
+    } catch (err) {
+      console.error('Error saving:', err);
+      error('Error saving dessert');
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+    <>
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
         <h3 className="text-xl font-bold text-gray-900 mb-4">
           {dessert ? 'Edit Dessert' : 'Add Dessert'}
         </h3>
@@ -263,7 +291,7 @@ function DessertForm({ dessert, onClose, onSave }: DessertFormProps) {
                   if (file) {
                     // Проверка размера файла
                     if (file.size > 10 * 1024 * 1024) {
-                      alert('File is too large. Maximum size: 10MB');
+                      warning('File is too large. Maximum size: 10MB');
                       return;
                     }
                     
@@ -293,10 +321,10 @@ function DessertForm({ dessert, onClose, onSave }: DessertFormProps) {
                       
                       console.log('Setting URL in form:', result.url);
                       setFormData({ ...formData, image_url: result.url });
-                    } catch (error: any) {
-                      console.error('Upload error:', error);
-                      const errorMessage = error.response?.data?.detail || error.message || 'Error uploading image';
-                      alert(`Upload error: ${errorMessage}\n\nCheck browser console for details.`);
+                    } catch (err: any) {
+                      console.error('Upload error:', err);
+                      const errorMessage = err.response?.data?.detail || err.message || 'Error uploading image';
+                      error(`Upload error: ${errorMessage}. Check browser console for details.`);
                     } finally {
                       setUploading(false);
                       // Clear input to allow uploading the same file again
@@ -323,7 +351,7 @@ function DessertForm({ dessert, onClose, onSave }: DessertFormProps) {
                   let value = e.target.value;
                   // Remove local file system paths
                   if (value.startsWith('file://') || value.startsWith('C:\\') || value.startsWith('/Users/') || value.startsWith('/home/')) {
-                    alert('Please use file upload or enter an image URL (http://... or /static/images/...)');
+                    warning('Please use file upload or enter an image URL (http://... or /static/images/...)');
                     return;
                   }
                   setFormData({ ...formData, image_url: value });
@@ -477,8 +505,9 @@ function DessertForm({ dessert, onClose, onSave }: DessertFormProps) {
             </button>
           </div>
         </form>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
