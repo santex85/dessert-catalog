@@ -33,7 +33,9 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = (e: React.MouseEvent, id: number) => {
+    e.preventDefault();
+    e.stopPropagation();
     setDeleteConfirm({ id });
   };
 
@@ -147,13 +149,15 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <button
+                    type="button"
                     onClick={() => handleEdit(dessert)}
                     className="text-blue-600 hover:text-blue-900 mr-4"
                   >
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(dessert.id)}
+                    type="button"
+                    onClick={(e) => handleDelete(e, dessert.id)}
                     className="text-red-600 hover:text-red-900"
                   >
                     Delete
