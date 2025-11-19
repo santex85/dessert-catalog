@@ -3,8 +3,8 @@ interface ConfirmDialogProps {
   message: string;
   confirmText?: string;
   cancelText?: string;
-  onConfirm: () => void;
-  onCancel: () => void;
+  onConfirm: (e?: React.MouseEvent) => void;
+  onCancel: (e?: React.MouseEvent) => void;
   type?: 'danger' | 'warning' | 'info';
 }
 
