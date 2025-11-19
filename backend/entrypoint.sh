@@ -12,8 +12,13 @@ if [ -n "$DATABASE_URL" ] && [[ "$DATABASE_URL" == postgresql* ]]; then
 fi
 
 # Initialize database with test data (only if database is empty)
-echo "Initializing database..."
-python init_db.py || echo "Database initialization completed or skipped"
+# This runs only once when the container starts for the first time
+if [ ! -f /app/.db_initialized ]; then
+    echo "Initializing database with test data..."
+    python init_db.py && touch /app/.db_initialized || echo "Database initialization completed or skipped"
+else
+    echo "Database already initialized, skipping..."
+fi
 
 # Start the application
 exec "$@"
