@@ -209,8 +209,9 @@ docker-up: docker-check docker-stop-conflicts ## Запустить все се�
 		echo "$(YELLOW)⚠ ВАЖНО: Отредактируйте backend/.env и установите SECRET_KEY!$(NC)"; \
 	fi
 	@echo "$(YELLOW)Проверка подключения к Docker перед запуском...$(NC)"
-	@for i in 1 2 3; do \
-		if docker info >/dev/null 2>&1 && docker-compose version >/dev/null 2>&1; then \
+	@i=1; \
+	while [ $$i -le 3 ]; do \
+		if docker info >/dev/null 2>&1; then \
 			echo "$(GREEN)✓ Docker готов$(NC)"; \
 			break; \
 		fi; \
@@ -221,6 +222,7 @@ docker-up: docker-check docker-stop-conflicts ## Запустить все се�
 		fi; \
 		echo "$(YELLOW)Ожидание Docker daemon... (попытка $$i/3)$(NC)"; \
 		sleep 2; \
+		i=$$((i + 1)); \
 	done
 	@docker-compose up -d || { \
 		echo "$(YELLOW)⚠ Ошибка при запуске docker-compose.$(NC)"; \
