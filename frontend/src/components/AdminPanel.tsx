@@ -39,19 +39,24 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
     setDeleteConfirm({ id });
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (!deleteConfirm) return;
     
+    const idToDelete = deleteConfirm.id;
+    setDeleteConfirm(null); // Закрываем диалог сразу
+    
     try {
-      await dessertsApi.delete(deleteConfirm.id);
+      await dessertsApi.delete(idToDelete);
       await loadDesserts();
       onUpdate();
       success('Dessert deleted successfully');
     } catch (err) {
       console.error('Error deleting:', err);
       error('Error deleting dessert');
-    } finally {
-      setDeleteConfirm(null);
     }
   };
 
@@ -78,8 +83,12 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
           confirmText="Delete"
           cancelText="Cancel"
           type="danger"
-          onConfirm={confirmDelete}
-          onCancel={() => setDeleteConfirm(null)}
+          onConfirm={() => {
+            confirmDelete();
+          }}
+          onCancel={() => {
+            setDeleteConfirm(null);
+          }}
         />
       )}
 
