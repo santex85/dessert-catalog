@@ -69,8 +69,6 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
 
   return (
     <div>
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
-      
       {deleteConfirm && (
         <ConfirmDialog
           title="Delete Dessert"
