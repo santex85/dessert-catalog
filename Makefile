@@ -189,15 +189,17 @@ docker-stop-conflicts: docker-check ## Остановить процессы, к
 		lsof -ti:8000 | xargs kill -9 2>/dev/null || true; \
 		sleep 1; \
 	fi
-	@if docker ps --format '{{.Ports}}' 2>/dev/null | grep -q ':8000->'; then \
-		echo "$(YELLOW)⚠ Порт 8000 занят Docker контейнером. Останавливаю...$(NC)"; \
-		docker-compose down 2>/dev/null || true; \
-		sleep 1; \
-	fi
-	@if docker ps --format '{{.Ports}}' 2>/dev/null | grep -q ':3000->'; then \
-		echo "$(YELLOW)⚠ Порт 3000 занят Docker контейнером. Останавливаю...$(NC)"; \
-		docker-compose down 2>/dev/null || true; \
-		sleep 1; \
+	@if docker info >/dev/null 2>&1; then \
+		if docker ps --format '{{.Ports}}' 2>/dev/null | grep -q ':8000->'; then \
+			echo "$(YELLOW)⚠ Порт 8000 занят Docker контейнером. Останавливаю...$(NC)"; \
+			docker-compose down 2>/dev/null || true; \
+			sleep 2; \
+		fi; \
+		if docker ps --format '{{.Ports}}' 2>/dev/null | grep -q ':3000->'; then \
+			echo "$(YELLOW)⚠ Порт 3000 занят Docker контейнером. Останавливаю...$(NC)"; \
+			docker-compose down 2>/dev/null || true; \
+			sleep 2; \
+		fi; \
 	fi
 	@echo "$(GREEN)✓ Конфликты разрешены$(NC)"
 
@@ -210,17 +212,18 @@ docker-up: docker-check docker-stop-conflicts ## Запустить все се�
 	fi
 	@echo "$(YELLOW)Проверка подключения к Docker перед запуском...$(NC)"
 	@i=1; \
-	while [ $$i -le 3 ]; do \
+	while [ $$i -le 5 ]; do \
 		if docker info >/dev/null 2>&1; then \
 			echo "$(GREEN)✓ Docker готов$(NC)"; \
 			break; \
 		fi; \
-		if [ $$i -eq 3 ]; then \
-			echo "$(YELLOW)⚠ Docker daemon недоступен после 3 попыток!$(NC)"; \
+		if [ $$i -eq 5 ]; then \
+			echo "$(YELLOW)⚠ Docker daemon недоступен после 5 попыток!$(NC)"; \
 			echo "$(YELLOW)Попробуйте запустить Docker Desktop: open -a Docker$(NC)"; \
+			echo "$(YELLOW)Или проверьте статус: docker info$(NC)"; \
 			exit 1; \
 		fi; \
-		echo "$(YELLOW)Ожидание Docker daemon... (попытка $$i/3)$(NC)"; \
+		echo "$(YELLOW)Ожидание Docker daemon... (попытка $$i/5)$(NC)"; \
 		sleep 2; \
 		i=$$((i + 1)); \
 	done
