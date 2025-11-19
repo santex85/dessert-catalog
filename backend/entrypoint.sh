@@ -11,6 +11,10 @@ if [ -n "$DATABASE_URL" ] && [[ "$DATABASE_URL" == postgresql* ]]; then
     echo "PostgreSQL is up!"
 fi
 
+# Ensure uploads directory exists with proper permissions
+mkdir -p /app/uploads/images
+chmod -R 755 /app/uploads || true
+
 # Initialize database with test data (only if database is empty)
 # This runs only once when the container starts for the first time
 if [ ! -f /app/.db_initialized ]; then
