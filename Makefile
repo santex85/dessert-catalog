@@ -1,4 +1,4 @@
-.PHONY: help install install-backend install-frontend init-db run run-backend run-frontend clean clean-backend clean-frontend restart test
+.PHONY: help install install-backend install-frontend init-db run run-backend run-frontend clean clean-backend clean-frontend restart test docker-up docker-down docker-build docker-logs docker-init-db
 
 # Переменные
 PYTHON := python3
@@ -149,4 +149,55 @@ status: ## Показать статус сервисов
 	@echo "  Бэкенд:    http://localhost:8000"
 	@echo "  Фронтенд:  http://localhost:3000"
 	@echo "  API Docs:  http://localhost:8000/docs"
+
+# Docker Compose commands
+docker-up: ## Запустить все сервисы в Docker
+	@echo "$(GREEN)Запуск Docker Compose...$(NC)"
+	@if [ ! -f "$(BACKEND_DIR)/.env" ]; then \
+		echo "$(YELLOW)Создание backend/.env из env.example...$(NC)"; \
+		cp $(BACKEND_DIR)/env.example $(BACKEND_DIR)/.env; \
+		echo "$(YELLOW)⚠ ВАЖНО: Отредактируйте backend/.env и установите SECRET_KEY!$(NC)"; \
+	fi
+	@docker-compose up -d
+	@echo "$(GREEN)✓ Сервисы запущены$(NC)"
+	@echo "$(YELLOW)Frontend:$(NC) http://localhost:3000"
+	@echo "$(YELLOW)Backend:$(NC) http://localhost:8000"
+
+docker-up-prod: ## Запустить с PostgreSQL (production)
+	@echo "$(GREEN)Запуск Docker Compose с PostgreSQL...$(NC)"
+	@if [ ! -f "$(BACKEND_DIR)/.env" ]; then \
+		echo "$(YELLOW)Создание backend/.env из env.example...$(NC)"; \
+		cp $(BACKEND_DIR)/env.example $(BACKEND_DIR)/.env; \
+		echo "$(YELLOW)⚠ ВАЖНО: Отредактируйте backend/.env!$(NC)"; \
+	fi
+	@docker-compose --profile production up -d
+	@echo "$(GREEN)✓ Сервисы запущены с PostgreSQL$(NC)"
+
+docker-down: ## Остановить все Docker сервисы
+	@echo "$(GREEN)Остановка Docker Compose...$(NC)"
+	@docker-compose down
+	@echo "$(GREEN)✓ Сервисы остановлены$(NC)"
+
+docker-build: ## Пересобрать Docker контейнеры
+	@echo "$(GREEN)Пересборка контейнеров...$(NC)"
+	@docker-compose build --no-cache
+	@echo "$(GREEN)✓ Контейнеры пересобраны$(NC)"
+
+docker-logs: ## Показать логи Docker сервисов
+	@docker-compose logs -f
+
+docker-init-db: ## Инициализировать базу данных в Docker
+	@echo "$(GREEN)Инициализация базы данных...$(NC)"
+	@docker-compose exec backend python init_db.py
+	@echo "$(GREEN)✓ База данных инициализирована$(NC)"
+
+docker-shell-backend: ## Открыть shell в backend контейнере
+	@docker-compose exec backend bash
+
+docker-shell-frontend: ## Открыть shell в frontend контейнере
+	@docker-compose exec frontend sh
+
+docker-restart: ## Перезапустить Docker сервисы
+	@docker-compose restart
+	@echo "$(GREEN)✓ Сервисы перезапущены$(NC)"
 

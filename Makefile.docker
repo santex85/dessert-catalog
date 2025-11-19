@@ -1,0 +1,69 @@
+# Docker Compose shortcuts
+
+.PHONY: docker-up docker-down docker-build docker-logs docker-shell docker-init docker-clean
+
+# Start all services
+docker-up:
+	docker-compose up -d
+
+# Start with PostgreSQL (production)
+docker-up-prod:
+	docker-compose --profile production up -d
+
+# Start development mode
+docker-up-dev:
+	docker-compose -f docker-compose.dev.yml up -d
+
+# Stop all services
+docker-down:
+	docker-compose down
+
+# Stop and remove volumes
+docker-down-clean:
+	docker-compose down -v
+
+# Rebuild containers
+docker-build:
+	docker-compose build --no-cache
+
+# View logs
+docker-logs:
+	docker-compose logs -f
+
+# Backend logs
+docker-logs-backend:
+	docker-compose logs -f backend
+
+# Frontend logs
+docker-logs-frontend:
+	docker-compose logs -f frontend
+
+# Shell into backend
+docker-shell-backend:
+	docker-compose exec backend bash
+
+# Shell into frontend
+docker-shell-frontend:
+	docker-compose exec frontend sh
+
+# Initialize database
+docker-init-db:
+	docker-compose exec backend python init_db.py
+
+# Create admin user
+docker-create-admin:
+	docker-compose exec backend python create_admin.py $(ARGS)
+
+# Check status
+docker-status:
+	docker-compose ps
+
+# Restart services
+docker-restart:
+	docker-compose restart
+
+# Clean everything (WARNING: removes volumes)
+docker-clean:
+	docker-compose down -v
+	docker system prune -f
+

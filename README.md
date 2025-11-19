@@ -20,7 +20,36 @@
 
 ## Быстрый старт
 
-### Использование Makefile (рекомендуется)
+### Docker Compose (рекомендуется для деплоя)
+
+Самый простой способ запустить проект в Docker:
+
+```bash
+# 1. Запустите все сервисы (автоматически создаст .env если нужно)
+make docker-up
+
+# 2. Инициализируйте базу данных
+make docker-init-db
+
+# 3. Откройте в браузере
+# Frontend: http://localhost:3000
+# Backend API: http://localhost:8000/docs
+```
+
+Или вручную:
+```bash
+docker-compose up -d
+docker-compose exec backend python init_db.py
+```
+
+Для production с PostgreSQL:
+```bash
+make docker-up-prod
+```
+
+Подробнее см. [DOCKER.md](DOCKER.md) и [QUICKSTART_DOCKER.md](QUICKSTART_DOCKER.md)
+
+### Использование Makefile (для локальной разработки)
 
 Самый простой способ запустить проект:
 
