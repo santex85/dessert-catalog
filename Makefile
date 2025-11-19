@@ -44,22 +44,38 @@ init-db: ## Инициализировать базу данных с тесто
 
 run: run-backend run-frontend ## Запустить бэкенд и фронтенд (в фоне)
 
-run-backend: ## Запустить только бэкенд
+run-backend: install-backend ## Запустить только бэкенд
 	@echo "$(GREEN)Запуск бэкенд-сервера...$(NC)"
+	@if [ ! -f "$(VENV_BIN)/uvicorn" ]; then \
+		echo "$(YELLOW)⚠ uvicorn не найден. Устанавливаю зависимости...$(NC)"; \
+		$(MAKE) install-backend; \
+	fi
 	@cd $(BACKEND_DIR) && $(VENV_BIN)/uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
-run-frontend: ## Запустить только фронтенд
+run-frontend: install-frontend ## Запустить только фронтенд
 	@echo "$(GREEN)Запуск фронтенд-сервера...$(NC)"
+	@if [ ! -d "$(FRONTEND_DIR)/node_modules" ]; then \
+		echo "$(YELLOW)⚠ node_modules не найдены. Устанавливаю зависимости...$(NC)"; \
+		$(MAKE) install-frontend; \
+	fi
 	@cd $(FRONTEND_DIR) && $(NPM) run dev
 
-run-backend-bg: ## Запустить бэкенд в фоновом режиме
+run-backend-bg: install-backend ## Запустить бэкенд в фоновом режиме
 	@echo "$(GREEN)Запуск бэкенд-сервера в фоне...$(NC)"
+	@if [ ! -f "$(VENV_BIN)/uvicorn" ]; then \
+		echo "$(YELLOW)⚠ uvicorn не найден. Устанавливаю зависимости...$(NC)"; \
+		$(MAKE) install-backend; \
+	fi
 	@cd $(BACKEND_DIR) && nohup $(VENV_BIN)/uvicorn main:app --reload --host 0.0.0.0 --port 8000 > backend.log 2>&1 & echo $$! > backend.pid
 	@echo "$(GREEN)✓ Бэкенд запущен (PID: $$(cat $(BACKEND_DIR)/backend.pid))$(NC)"
 	@echo "Логи: tail -f $(BACKEND_DIR)/backend.log"
 
-run-frontend-bg: ## Запустить фронтенд в фоновом режиме
+run-frontend-bg: install-frontend ## Запустить фронтенд в фоновом режиме
 	@echo "$(GREEN)Запуск фронтенд-сервера в фоне...$(NC)"
+	@if [ ! -d "$(FRONTEND_DIR)/node_modules" ]; then \
+		echo "$(YELLOW)⚠ node_modules не найдены. Устанавливаю зависимости...$(NC)"; \
+		$(MAKE) install-frontend; \
+	fi
 	@cd $(FRONTEND_DIR) && nohup $(NPM) run dev > frontend.log 2>&1 & echo $$! > frontend.pid
 	@echo "$(GREEN)✓ Фронтенд запущен (PID: $$(cat $(FRONTEND_DIR)/frontend.pid))$(NC)"
 	@echo "Логи: tail -f $(FRONTEND_DIR)/frontend.log"
