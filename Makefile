@@ -1,4 +1,4 @@
-.PHONY: help install install-backend install-frontend init-db run run-backend run-frontend clean clean-backend clean-frontend restart test docker-up docker-down docker-build docker-logs docker-init-db
+.PHONY: help install install-backend install-frontend init-db run run-backend run-frontend clean clean-backend clean-frontend restart test docker-up docker-down docker-build docker-logs docker-init-db deploy deploy-check deploy-remote deploy-status deploy-logs deploy-shell
 
 # Переменные
 PYTHON := python3
@@ -200,4 +200,77 @@ docker-shell-frontend: ## Открыть shell в frontend контейнере
 docker-restart: ## Перезапустить Docker сервисы
 	@docker-compose restart
 	@echo "$(GREEN)✓ Сервисы перезапущены$(NC)"
+
+# Deployment commands
+deploy: ## Deploy to remote server
+	@if [ ! -f "deploy.env" ]; then \
+		echo "$(YELLOW)⚠ deploy.env not found. Creating from template...$(NC)"; \
+		cp deploy.env.example deploy.env; \
+		echo "$(YELLOW)⚠ Please edit deploy.env with your server details and run make deploy again$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)Starting deployment...$(NC)"
+	@$(MAKE) deploy-check
+	@$(MAKE) deploy-remote
+
+deploy-check: ## Check deployment configuration
+	@echo "$(GREEN)Checking deployment configuration...$(NC)"
+	@if [ ! -f "deploy.env" ]; then \
+		echo "$(YELLOW)⚠ deploy.env not found$(NC)"; \
+		exit 1; \
+	fi
+	@. deploy.env && \
+	if [ -z "$$DEPLOY_HOST" ] || [ -z "$$DEPLOY_USER" ] || [ -z "$$DEPLOY_PATH" ]; then \
+		echo "$(YELLOW)⚠ Missing required variables in deploy.env$(NC)"; \
+		echo "Required: DEPLOY_HOST, DEPLOY_USER, DEPLOY_PATH"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)✓ Configuration valid$(NC)"
+
+deploy-remote: ## Execute deployment on remote server
+	@. deploy.env && \
+	SSH_KEY_OPT=$$([ -n "$$DEPLOY_KEY" ] && echo "-i $$DEPLOY_KEY" || echo ""); \
+	SSH_PORT_OPT=$$([ -n "$$DEPLOY_PORT" ] && echo "-p $$DEPLOY_PORT" || echo ""); \
+	COMPOSE_FILE=$${DEPLOY_COMPOSE_FILE:-docker-compose.yml}; \
+	PROFILE_OPT=$$([ -n "$$DEPLOY_PROFILE" ] && echo "--profile $$DEPLOY_PROFILE" || echo ""); \
+	echo "$(GREEN)Connecting to $$DEPLOY_USER@$$DEPLOY_HOST...$(NC)"; \
+	ssh $$SSH_KEY_OPT $$SSH_PORT_OPT $$DEPLOY_USER@$$DEPLOY_HOST << 'ENDSSH' || exit 1
+		set -e
+		cd $$DEPLOY_PATH || { echo "Directory $$DEPLOY_PATH not found!"; exit 1; }
+		echo "✓ Connected to server"
+		echo "Pulling latest changes..."
+		git fetch origin || echo "⚠ Git fetch failed (continuing...)"
+		git checkout $${DEPLOY_BRANCH:-main} || echo "⚠ Branch checkout failed (continuing...)"
+		git pull origin $${DEPLOY_BRANCH:-main} || echo "⚠ Git pull failed (continuing...)"
+		echo "✓ Code updated"
+		echo "Building Docker images..."
+		docker-compose $$PROFILE_OPT -f $$COMPOSE_FILE build --no-cache || docker-compose $$PROFILE_OPT -f $$COMPOSE_FILE build
+		echo "✓ Images built"
+		echo "Starting services..."
+		docker-compose $$PROFILE_OPT -f $$COMPOSE_FILE up -d
+		echo "✓ Services started"
+		echo "Cleaning up old images..."
+		docker image prune -f || true
+		echo "✓ Deployment complete!"
+ENDSSH
+
+deploy-status: ## Check deployment status on remote server
+	@. deploy.env && \
+	SSH_KEY_OPT=$$([ -n "$$DEPLOY_KEY" ] && echo "-i $$DEPLOY_KEY" || echo ""); \
+	SSH_PORT_OPT=$$([ -n "$$DEPLOY_PORT" ] && echo "-p $$DEPLOY_PORT" || echo ""); \
+	COMPOSE_FILE=$${DEPLOY_COMPOSE_FILE:-docker-compose.yml}; \
+	ssh $$SSH_KEY_OPT $$SSH_PORT_OPT $$DEPLOY_USER@$$DEPLOY_HOST "cd $$DEPLOY_PATH && docker-compose -f $$COMPOSE_FILE ps"
+
+deploy-logs: ## View logs from remote server
+	@. deploy.env && \
+	SSH_KEY_OPT=$$([ -n "$$DEPLOY_KEY" ] && echo "-i $$DEPLOY_KEY" || echo ""); \
+	SSH_PORT_OPT=$$([ -n "$$DEPLOY_PORT" ] && echo "-p $$DEPLOY_PORT" || echo ""); \
+	COMPOSE_FILE=$${DEPLOY_COMPOSE_FILE:-docker-compose.yml}; \
+	ssh $$SSH_KEY_OPT $$SSH_PORT_OPT $$DEPLOY_USER@$$DEPLOY_HOST "cd $$DEPLOY_PATH && docker-compose -f $$COMPOSE_FILE logs -f"
+
+deploy-shell: ## Open shell on remote server
+	@. deploy.env && \
+	SSH_KEY_OPT=$$([ -n "$$DEPLOY_KEY" ] && echo "-i $$DEPLOY_KEY" || echo ""); \
+	SSH_PORT_OPT=$$([ -n "$$DEPLOY_PORT" ] && echo "-p $$DEPLOY_PORT" || echo ""); \
+	ssh $$SSH_KEY_OPT $$SSH_PORT_OPT $$DEPLOY_USER@$$DEPLOY_HOST "cd $$DEPLOY_PATH && bash"
 

@@ -43,3 +43,6 @@ build/
 # PID files
 *.pid
 
+# Deployment
+deploy.env
+

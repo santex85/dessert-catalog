@@ -49,6 +49,21 @@ make docker-up-prod
 
 Подробнее см. [DOCKER.md](DOCKER.md) и [QUICKSTART_DOCKER.md](QUICKSTART_DOCKER.md)
 
+### Удаленный деплой
+
+Для деплоя на удаленный сервер:
+
+```bash
+# 1. Настройте конфигурацию
+cp deploy.env.example deploy.env
+# Отредактируйте deploy.env с данными вашего сервера
+
+# 2. Задеплойте
+make deploy
+```
+
+Подробнее см. [DEPLOY.md](DEPLOY.md)
+
 ### Использование Makefile (для локальной разработки)
 
 Самый простой способ запустить проект:
