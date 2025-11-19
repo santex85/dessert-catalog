@@ -1,0 +1,24 @@
+# Временные файлы Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Виртуальное окружение
+venv/
+env/
+ENV/
+
+# База данных
+*.db
+*.sqlite
+*.sqlite3
+
+# Загруженные файлы
+uploads/
+
+# Логи
+*.log
+*.pid
+
