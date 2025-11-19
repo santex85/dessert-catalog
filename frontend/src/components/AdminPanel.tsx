@@ -33,10 +33,12 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
     }
   };
 
-  const handleDelete = (e: React.MouseEvent, id: number) => {
+  const handleDelete = (e: React.MouseEvent<HTMLButtonElement>, id: number) => {
     e.preventDefault();
     e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
     setDeleteConfirm({ id });
+    return false;
   };
 
   const confirmDelete = async (e?: React.MouseEvent) => {
@@ -123,7 +125,7 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
       )}
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
+        <table className="min-w-full divide-y divide-gray-200" onContextMenu={(e) => e.preventDefault()}>
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
