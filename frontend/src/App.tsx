@@ -7,6 +7,7 @@ import Register from './components/Register';
 import { Dessert } from './types';
 import { dessertsApi } from './services/api';
 import { useAuth } from './contexts/AuthContext';
+import { useToastContext } from './contexts/ToastContext';
 
 function ProtectedRoute({ children, requireAdmin = false }: { children: React.ReactNode; requireAdmin?: boolean }) {
   const { isAuthenticated, isAdmin, loading } = useAuth();

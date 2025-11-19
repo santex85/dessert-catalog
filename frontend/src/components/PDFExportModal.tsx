@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { pdfApi } from '../services/api';
 import { PDFExportSettings, PDFTemplate } from '../types';
-import { useToast } from '../hooks/useToast';
-import { ToastContainer } from './Toast';
+import { useToastContext } from '../contexts/ToastContext';
 
 interface PDFExportModalProps {
   selectedIds: number[];
@@ -43,7 +42,7 @@ export default function PDFExportModal({ selectedIds, onClose }: PDFExportModalP
     template: 'minimal',
   });
   const [loading, setLoading] = useState(false);
-  const { toasts, removeToast, error, success } = useToast();
+  const { error, success } = useToastContext();
 
   const handleExport = async () => {
     try {
@@ -71,12 +70,10 @@ export default function PDFExportModal({ selectedIds, onClose }: PDFExportModalP
   };
 
   return (
-    <>
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
-      <div
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-        onClick={onClose}
-      >
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
         <div
           className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
           onClick={(e) => e.stopPropagation()}
@@ -204,9 +201,8 @@ export default function PDFExportModal({ selectedIds, onClose }: PDFExportModalP
             {loading ? 'Generating...' : 'Download PDF'}
           </button>
         </div>
-        </div>
       </div>
-    </>
+    </div>
   );
 }
 

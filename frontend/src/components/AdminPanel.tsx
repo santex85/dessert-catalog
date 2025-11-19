@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { Dessert } from '../types';
 import { dessertsApi, uploadApi } from '../services/api';
 import { getImageUrl } from '../utils/image';
-import { useToast } from '../hooks/useToast';
-import { ToastContainer } from './Toast';
+import { useToastContext } from '../contexts/ToastContext';
 import ConfirmDialog from './ConfirmDialog';
 
 interface AdminPanelProps {
@@ -16,7 +15,7 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
   const [editingDessert, setEditingDessert] = useState<Dessert | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: number } | null>(null);
-  const { toasts, removeToast, error, success } = useToast();
+  const { error, success } = useToastContext();
 
   useEffect(() => {
     loadDesserts();
@@ -193,7 +192,7 @@ function DessertForm({ dessert, onClose, onSave }: DessertFormProps) {
   });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const { toasts, removeToast, error, success, warning } = useToast();
+  const { error, success, warning } = useToastContext();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -216,9 +215,7 @@ function DessertForm({ dessert, onClose, onSave }: DessertFormProps) {
   };
 
   return (
-    <>
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
         <h3 className="text-xl font-bold text-gray-900 mb-4">
           {dessert ? 'Edit Dessert' : 'Add Dessert'}
@@ -505,9 +502,8 @@ function DessertForm({ dessert, onClose, onSave }: DessertFormProps) {
             </button>
           </div>
         </form>
-        </div>
       </div>
-    </>
+    </div>
   );
 }
 
