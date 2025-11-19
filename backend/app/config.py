@@ -2,7 +2,9 @@ import os
 from pathlib import Path
 
 # Базовая директория проекта
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+# В Docker контейнере это будет /app
+# Локально это будет корень проекта backend/
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Директория для загрузки изображений
 UPLOAD_DIR = BASE_DIR / "uploads" / "images"
