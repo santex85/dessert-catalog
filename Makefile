@@ -198,27 +198,20 @@ docker-stop-conflicts: docker-check ## Остановить процессы, к
 	fi
 	@echo "$(GREEN)✓ Конфликты разрешены$(NC)"
 
-docker-up: docker-check docker-stop-conflicts ## Запустить все сервисы в Docker
-	@echo "$(GREEN)Запуск Docker Compose...$(NC)"
+docker-up: ## Запустить все сервисы в Docker
+	@echo "$(GREEN)Запуск через скрипт start-docker.sh...$(NC)"
 	@if [ ! -f "$(BACKEND_DIR)/.env" ]; then \
 		echo "$(YELLOW)Создание backend/.env из env.example...$(NC)"; \
 		cp $(BACKEND_DIR)/env.example $(BACKEND_DIR)/.env; \
 		echo "$(YELLOW)⚠ ВАЖНО: Отредактируйте backend/.env и установите SECRET_KEY!$(NC)"; \
 	fi
-	@$(DOCKER_COMPOSE) up -d || { \
-		echo "$(YELLOW)⚠ Ошибка при запуске $(DOCKER_COMPOSE).$(NC)"; \
-		echo "$(YELLOW)Проверьте:$(NC)"; \
-		echo "  1. Docker Desktop запущен: open -a Docker"; \
-		echo "  2. Docker daemon готов: docker ps"; \
-		echo "  3. $(DOCKER_COMPOSE) доступен: $(DOCKER_COMPOSE) version"; \
-		echo ""; \
-		echo "$(YELLOW)Попробуйте вручную:$(NC)"; \
-		echo "  $(DOCKER_COMPOSE) up -d"; \
+	@./start-docker.sh || { \
+		echo "$(YELLOW)⚠ Ошибка при запуске. Попробуйте вручную:$(NC)"; \
+		echo "  ./start-docker.sh"; \
+		echo "  или"; \
+		echo "  docker compose up -d"; \
 		exit 1; \
 	}
-	@echo "$(GREEN)✓ Сервисы запущены$(NC)"
-	@echo "$(YELLOW)Frontend:$(NC) http://localhost:3000"
-	@echo "$(YELLOW)Backend:$(NC) http://localhost:8000"
 
 docker-up-prod: docker-check ## Запустить с PostgreSQL (production)
 	@echo "$(GREEN)Запуск Docker Compose с PostgreSQL...$(NC)"
