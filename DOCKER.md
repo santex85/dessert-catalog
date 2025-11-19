@@ -14,13 +14,10 @@
    ```bash
    docker-compose -f docker-compose.dev.yml up -d
    ```
+   
+   The database will be **automatically initialized** with test data on first start.
 
-3. **Initialize database:**
-   ```bash
-   docker-compose -f docker-compose.dev.yml exec backend python init_db.py
-   ```
-
-4. **Access application:**
+3. **Access application:**
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:8000
    - API Docs: http://localhost:8000/docs
@@ -46,11 +43,45 @@
    ```bash
    docker-compose --profile production up -d
    ```
+   
+   The database will be **automatically initialized** with test data on first start.
 
-4. **Initialize database:**
-   ```bash
-   docker-compose exec backend python init_db.py
-   ```
+## Test Data
+
+When the database is initialized, it creates:
+
+- **20 test desserts** in various categories:
+  - Cakes: New York Cheesecake, Red Velvet, Strawberry Shortcake, Carrot Cake
+  - Desserts: Tiramisu, Panna Cotta, Chocolate Mousse, Creme Brulee
+  - Pastries: Chocolate Eclair, Macarons Assortment
+  - Cookies: Chocolate Chip Cookies
+  - Tarts: Lemon Tart, Fruit Tart
+  - Pies: Apple Pie, Pecan Pie
+  - Vegan: Vegan Brownie
+  - Sugar-Free: Sugar-Free Cake
+  - Gluten-Free: Gluten-Free Chocolate Cake
+  - Ice Cream: Ice Cream Sundae
+  - Breads: Banana Bread
+
+- **2 test users**:
+  - **Admin**: `admin` / `admin123` (has admin privileges)
+  - **Regular user**: `user` / `user123` (regular user)
+
+### Manual Initialization
+
+If you need to manually initialize or re-initialize the database:
+
+```bash
+make docker-init-db
+```
+
+Or directly:
+
+```bash
+docker compose exec backend python init_db.py
+```
+
+**Note**: The script checks if data already exists and won't duplicate it. To reset the database, remove the database file or volume first.
 
 ## Docker Compose Commands
 
