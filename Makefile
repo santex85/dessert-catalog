@@ -233,26 +233,27 @@ deploy-remote: ## Execute deployment on remote server
 	SSH_PORT_OPT=$$([ -n "$$DEPLOY_PORT" ] && echo "-p $$DEPLOY_PORT" || echo ""); \
 	COMPOSE_FILE=$${DEPLOY_COMPOSE_FILE:-docker-compose.yml}; \
 	PROFILE_OPT=$$([ -n "$$DEPLOY_PROFILE" ] && echo "--profile $$DEPLOY_PROFILE" || echo ""); \
+	BRANCH=$${DEPLOY_BRANCH:-main}; \
 	echo "$(GREEN)Connecting to $$DEPLOY_USER@$$DEPLOY_HOST...$(NC)"; \
-	ssh $$SSH_KEY_OPT $$SSH_PORT_OPT $$DEPLOY_USER@$$DEPLOY_HOST << 'ENDSSH' || exit 1
-		set -e
-		cd $$DEPLOY_PATH || { echo "Directory $$DEPLOY_PATH not found!"; exit 1; }
-		echo "✓ Connected to server"
-		echo "Pulling latest changes..."
-		git fetch origin || echo "⚠ Git fetch failed (continuing...)"
-		git checkout $${DEPLOY_BRANCH:-main} || echo "⚠ Branch checkout failed (continuing...)"
-		git pull origin $${DEPLOY_BRANCH:-main} || echo "⚠ Git pull failed (continuing...)"
-		echo "✓ Code updated"
-		echo "Building Docker images..."
-		docker-compose $$PROFILE_OPT -f $$COMPOSE_FILE build --no-cache || docker-compose $$PROFILE_OPT -f $$COMPOSE_FILE build
-		echo "✓ Images built"
-		echo "Starting services..."
-		docker-compose $$PROFILE_OPT -f $$COMPOSE_FILE up -d
-		echo "✓ Services started"
-		echo "Cleaning up old images..."
-		docker image prune -f || true
-		echo "✓ Deployment complete!"
-ENDSSH
+	ssh $$SSH_KEY_OPT $$SSH_PORT_OPT $$DEPLOY_USER@$$DEPLOY_HOST " \
+		set -e && \
+		cd $$DEPLOY_PATH || { echo 'Directory $$DEPLOY_PATH not found!'; exit 1; } && \
+		echo '✓ Connected to server' && \
+		echo 'Pulling latest changes...' && \
+		git fetch origin || echo '⚠ Git fetch failed (continuing...)' && \
+		git checkout $$BRANCH || echo '⚠ Branch checkout failed (continuing...)' && \
+		git pull origin $$BRANCH || echo '⚠ Git pull failed (continuing...)' && \
+		echo '✓ Code updated' && \
+		echo 'Building Docker images...' && \
+		docker-compose $$PROFILE_OPT -f $$COMPOSE_FILE build --no-cache || docker-compose $$PROFILE_OPT -f $$COMPOSE_FILE build && \
+		echo '✓ Images built' && \
+		echo 'Starting services...' && \
+		docker-compose $$PROFILE_OPT -f $$COMPOSE_FILE up -d && \
+		echo '✓ Services started' && \
+		echo 'Cleaning up old images...' && \
+		docker image prune -f || true && \
+		echo '✓ Deployment complete!' \
+	" || exit 1
 
 deploy-status: ## Check deployment status on remote server
 	@. deploy.env && \
