@@ -14,8 +14,13 @@ if ! pgrep -f "Docker Desktop" > /dev/null; then
     sleep 10
 fi
 
+# Функция проверки Docker daemon (проверяем наличие Server секции)
+check_docker_daemon() {
+    docker info 2>&1 | grep -q "^Server:" && ! docker info 2>&1 | grep -q "Cannot connect"
+}
+
 # Проверяем Docker daemon (быстрая проверка)
-if docker info >/dev/null 2>&1; then
+if check_docker_daemon; then
     echo "✅ Docker daemon доступен!"
 else
     echo "⏳ Ожидание Docker daemon..."
@@ -23,7 +28,7 @@ else
     ATTEMPT=1
     
     while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-        if docker info >/dev/null 2>&1; then
+        if check_docker_daemon; then
             echo "✅ Docker daemon доступен!"
             break
         fi
