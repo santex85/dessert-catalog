@@ -37,6 +37,12 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
     e.preventDefault();
     e.stopPropagation();
     e.nativeEvent.stopImmediatePropagation();
+    
+    // Additional protection: prevent any default behavior
+    if (e.nativeEvent.cancelable) {
+      e.nativeEvent.preventDefault();
+    }
+    
     setDeleteConfirm({ id });
     return false;
   };
