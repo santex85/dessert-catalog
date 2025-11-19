@@ -8,6 +8,8 @@ VENV := backend/venv
 VENV_BIN := $(VENV)/bin
 BACKEND_DIR := backend
 FRONTEND_DIR := frontend
+# Docker Compose command (use 'docker compose' if docker-compose not found)
+DOCKER_COMPOSE := $(shell command -v docker-compose >/dev/null 2>&1 && echo docker-compose || echo docker compose)
 
 # Цвета для вывода
 GREEN := \033[0;32m
@@ -175,8 +177,8 @@ docker-check: ## Проверить, что Docker запущен
 		echo "$(YELLOW)Подождите, пока Docker полностью запустится, затем попробуйте снова.$(NC)"; \
 		exit 1; \
 	fi
-	@if ! $(DOCKER_COMPOSE) version >/dev/null 2>&1; then \
-		echo "$(YELLOW)⚠ $(DOCKER_COMPOSE) не доступен!$(NC)"; \
+	@if ! $$(DOCKER_COMPOSE) version >/dev/null 2>&1; then \
+		echo "$(YELLOW)⚠ $$(DOCKER_COMPOSE) не доступен!$(NC)"; \
 		exit 1; \
 	fi
 	@echo "$(GREEN)✓ Docker daemon запущен$(NC)"
@@ -192,12 +194,12 @@ docker-stop-conflicts: docker-check ## Остановить процессы, к
 	@if docker info >/dev/null 2>&1; then \
 		if docker ps --format '{{.Ports}}' 2>/dev/null | grep -q ':8000->'; then \
 			echo "$(YELLOW)⚠ Порт 8000 занят Docker контейнером. Останавливаю...$(NC)"; \
-			$(DOCKER_COMPOSE) down 2>/dev/null || true; \
+			$$(DOCKER_COMPOSE) down 2>/dev/null || true; \
 			sleep 2; \
 		fi; \
 		if docker ps --format '{{.Ports}}' 2>/dev/null | grep -q ':3000->'; then \
 			echo "$(YELLOW)⚠ Порт 3000 занят Docker контейнером. Останавливаю...$(NC)"; \
-			$(DOCKER_COMPOSE) down 2>/dev/null || true; \
+			$$(DOCKER_COMPOSE) down 2>/dev/null || true; \
 			sleep 2; \
 		fi; \
 	fi
@@ -227,12 +229,12 @@ docker-up: docker-check docker-stop-conflicts ## Запустить все се�
 		sleep 2; \
 		i=$$((i + 1)); \
 	done
-	@$(DOCKER_COMPOSE) up -d || { \
-		echo "$(YELLOW)⚠ Ошибка при запуске $(DOCKER_COMPOSE).$(NC)"; \
+	@$$(DOCKER_COMPOSE) up -d || { \
+		echo "$(YELLOW)⚠ Ошибка при запуске $$(DOCKER_COMPOSE).$(NC)"; \
 		echo "$(YELLOW)Проверьте:$(NC)"; \
 		echo "  1. Docker Desktop запущен: open -a Docker"; \
 		echo "  2. Docker daemon готов: docker info"; \
-		echo "  3. $(DOCKER_COMPOSE) доступен: $(DOCKER_COMPOSE) version"; \
+		echo "  3. $$(DOCKER_COMPOSE) доступен: $$(DOCKER_COMPOSE) version"; \
 		exit 1; \
 	}
 	@echo "$(GREEN)✓ Сервисы запущены$(NC)"
@@ -246,35 +248,35 @@ docker-up-prod: docker-check ## Запустить с PostgreSQL (production)
 		cp $(BACKEND_DIR)/env.example $(BACKEND_DIR)/.env; \
 		echo "$(YELLOW)⚠ ВАЖНО: Отредактируйте backend/.env!$(NC)"; \
 	fi
-	@$(DOCKER_COMPOSE) --profile production up -d
+	@$$(DOCKER_COMPOSE) --profile production up -d
 	@echo "$(GREEN)✓ Сервисы запущены с PostgreSQL$(NC)"
 
 docker-down: docker-check ## Остановить все Docker сервисы
 	@echo "$(GREEN)Остановка Docker Compose...$(NC)"
-	@$(DOCKER_COMPOSE) down
+	@$$(DOCKER_COMPOSE) down
 	@echo "$(GREEN)✓ Сервисы остановлены$(NC)"
 
 docker-build: docker-check ## Пересобрать Docker контейнеры
 	@echo "$(GREEN)Пересборка контейнеров...$(NC)"
-	@$(DOCKER_COMPOSE) build --no-cache
+	@$$(DOCKER_COMPOSE) build --no-cache
 	@echo "$(GREEN)✓ Контейнеры пересобраны$(NC)"
 
 docker-logs: ## Показать логи Docker сервисов
-	@$(DOCKER_COMPOSE) logs -f
+	@$$(DOCKER_COMPOSE) logs -f
 
 docker-init-db: ## Инициализировать базу данных в Docker
 	@echo "$(GREEN)Инициализация базы данных...$(NC)"
-	@$(DOCKER_COMPOSE) exec backend python init_db.py
+	@$$(DOCKER_COMPOSE) exec backend python init_db.py
 	@echo "$(GREEN)✓ База данных инициализирована$(NC)"
 
 docker-shell-backend: ## Открыть shell в backend контейнере
-	@$(DOCKER_COMPOSE) exec backend bash
+	@$$(DOCKER_COMPOSE) exec backend bash
 
 docker-shell-frontend: ## Открыть shell в frontend контейнере
-	@$(DOCKER_COMPOSE) exec frontend sh
+	@$$(DOCKER_COMPOSE) exec frontend sh
 
 docker-restart: ## Перезапустить Docker сервисы
-	@$(DOCKER_COMPOSE) restart
+	@$$(DOCKER_COMPOSE) restart
 	@echo "$(GREEN)✓ Сервисы перезапущены$(NC)"
 
 # Deployment commands
@@ -307,7 +309,7 @@ deploy-remote: ## Execute deployment on remote server
 	@. deploy.env && \
 	SSH_KEY_OPT=$$([ -n "$$DEPLOY_KEY" ] && echo "-i $$DEPLOY_KEY" || echo ""); \
 	SSH_PORT_OPT=$$([ -n "$$DEPLOY_PORT" ] && echo "-p $$DEPLOY_PORT" || echo ""); \
-	COMPOSE_FILE=$${DEPLOY_COMPOSE_FILE:-$(DOCKER_COMPOSE).yml}; \
+	COMPOSE_FILE=$${DEPLOY_COMPOSE_FILE:-$$(DOCKER_COMPOSE).yml}; \
 	PROFILE_OPT=$$([ -n "$$DEPLOY_PROFILE" ] && echo "--profile $$DEPLOY_PROFILE" || echo ""); \
 	BRANCH=$${DEPLOY_BRANCH:-main}; \
 	echo "$(GREEN)Connecting to $$DEPLOY_USER@$$DEPLOY_HOST...$(NC)"; \
@@ -321,10 +323,10 @@ deploy-remote: ## Execute deployment on remote server
 		git pull origin $$BRANCH || echo '⚠ Git pull failed (continuing...)' && \
 		echo '✓ Code updated' && \
 		echo 'Building Docker images...' && \
-		$(DOCKER_COMPOSE) $$PROFILE_OPT -f $$COMPOSE_FILE build --no-cache || $(DOCKER_COMPOSE) $$PROFILE_OPT -f $$COMPOSE_FILE build && \
+		$$(DOCKER_COMPOSE) $$PROFILE_OPT -f $$COMPOSE_FILE build --no-cache || $$(DOCKER_COMPOSE) $$PROFILE_OPT -f $$COMPOSE_FILE build && \
 		echo '✓ Images built' && \
 		echo 'Starting services...' && \
-		$(DOCKER_COMPOSE) $$PROFILE_OPT -f $$COMPOSE_FILE up -d && \
+		$$(DOCKER_COMPOSE) $$PROFILE_OPT -f $$COMPOSE_FILE up -d && \
 		echo '✓ Services started' && \
 		echo 'Cleaning up old images...' && \
 		docker image prune -f || true && \
@@ -335,15 +337,15 @@ deploy-status: ## Check deployment status on remote server
 	@. deploy.env && \
 	SSH_KEY_OPT=$$([ -n "$$DEPLOY_KEY" ] && echo "-i $$DEPLOY_KEY" || echo ""); \
 	SSH_PORT_OPT=$$([ -n "$$DEPLOY_PORT" ] && echo "-p $$DEPLOY_PORT" || echo ""); \
-	COMPOSE_FILE=$${DEPLOY_COMPOSE_FILE:-$(DOCKER_COMPOSE).yml}; \
-	ssh $$SSH_KEY_OPT $$SSH_PORT_OPT $$DEPLOY_USER@$$DEPLOY_HOST "cd $$DEPLOY_PATH && $(DOCKER_COMPOSE) -f $$COMPOSE_FILE ps"
+	COMPOSE_FILE=$${DEPLOY_COMPOSE_FILE:-$$(DOCKER_COMPOSE).yml}; \
+	ssh $$SSH_KEY_OPT $$SSH_PORT_OPT $$DEPLOY_USER@$$DEPLOY_HOST "cd $$DEPLOY_PATH && $$(DOCKER_COMPOSE) -f $$COMPOSE_FILE ps"
 
 deploy-logs: ## View logs from remote server
 	@. deploy.env && \
 	SSH_KEY_OPT=$$([ -n "$$DEPLOY_KEY" ] && echo "-i $$DEPLOY_KEY" || echo ""); \
 	SSH_PORT_OPT=$$([ -n "$$DEPLOY_PORT" ] && echo "-p $$DEPLOY_PORT" || echo ""); \
-	COMPOSE_FILE=$${DEPLOY_COMPOSE_FILE:-$(DOCKER_COMPOSE).yml}; \
-	ssh $$SSH_KEY_OPT $$SSH_PORT_OPT $$DEPLOY_USER@$$DEPLOY_HOST "cd $$DEPLOY_PATH && $(DOCKER_COMPOSE) -f $$COMPOSE_FILE logs -f"
+	COMPOSE_FILE=$${DEPLOY_COMPOSE_FILE:-$$(DOCKER_COMPOSE).yml}; \
+	ssh $$SSH_KEY_OPT $$SSH_PORT_OPT $$DEPLOY_USER@$$DEPLOY_HOST "cd $$DEPLOY_PATH && $$(DOCKER_COMPOSE) -f $$COMPOSE_FILE logs -f"
 
 deploy-shell: ## Open shell on remote server
 	@. deploy.env && \
