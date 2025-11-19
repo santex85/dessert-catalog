@@ -1,4 +1,4 @@
-.PHONY: help install install-backend install-frontend init-db run run-backend run-frontend clean clean-backend clean-frontend restart test docker-up docker-down docker-build docker-logs docker-init-db deploy deploy-check deploy-remote deploy-status deploy-logs deploy-shell
+.PHONY: help install install-backend install-frontend init-db run run-backend run-frontend clean clean-backend clean-frontend restart test docker-up docker-down docker-build docker-logs docker-init-db deploy deploy-check deploy-remote deploy-status deploy-logs deploy-shell docker-stop-conflicts
 
 # Переменные
 PYTHON := python3
@@ -149,9 +149,43 @@ status: ## Показать статус сервисов
 	@echo "  Бэкенд:    http://localhost:8000"
 	@echo "  Фронтенд:  http://localhost:3000"
 	@echo "  API Docs:  http://localhost:8000/docs"
+	@echo ""
+	@echo "$(GREEN)Docker Compose команды:$(NC)"
+	@echo "  docker-up       - Запустить все сервисы в Docker"
+	@echo "  docker-up-prod  - Запустить с PostgreSQL (production)"
+	@echo "  docker-down     - Остановить все сервисы"
+	@echo "  docker-build    - Пересобрать контейнеры"
+	@echo "  docker-logs     - Показать логи"
+	@echo "  docker-init-db  - Инициализировать базу данных"
+	@echo ""
+	@echo "$(GREEN)Deployment команды:$(NC)"
+	@echo "  deploy          - Deploy to remote server"
+	@echo "  deploy-status   - Check remote server status"
+	@echo "  deploy-logs     - View remote server logs"
+	@echo "  deploy-shell    - Open shell on remote server"
 
 # Docker Compose commands
-docker-up: ## Запустить все сервисы в Docker
+docker-stop-conflicts: ## Остановить процессы, конфликтующие с Docker
+	@echo "$(YELLOW)Проверка конфликтов портов...$(NC)"
+	@if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null 2>&1; then \
+		echo "$(YELLOW)⚠ Порт 8000 занят. Останавливаю локальные процессы...$(NC)"; \
+		$(MAKE) stop || true; \
+		lsof -ti:8000 | xargs kill -9 2>/dev/null || true; \
+		sleep 1; \
+	fi
+	@if docker ps --format '{{.Ports}}' | grep -q ':8000->'; then \
+		echo "$(YELLOW)⚠ Порт 8000 занят Docker контейнером. Останавливаю...$(NC)"; \
+		docker-compose down 2>/dev/null || true; \
+		sleep 1; \
+	fi
+	@if docker ps --format '{{.Ports}}' | grep -q ':3000->'; then \
+		echo "$(YELLOW)⚠ Порт 3000 занят Docker контейнером. Останавливаю...$(NC)"; \
+		docker-compose down 2>/dev/null || true; \
+		sleep 1; \
+	fi
+	@echo "$(GREEN)✓ Конфликты разрешены$(NC)"
+
+docker-up: docker-stop-conflicts ## Запустить все сервисы в Docker
 	@echo "$(GREEN)Запуск Docker Compose...$(NC)"
 	@if [ ! -f "$(BACKEND_DIR)/.env" ]; then \
 		echo "$(YELLOW)Создание backend/.env из env.example...$(NC)"; \
@@ -274,4 +308,3 @@ deploy-shell: ## Open shell on remote server
 	SSH_KEY_OPT=$$([ -n "$$DEPLOY_KEY" ] && echo "-i $$DEPLOY_KEY" || echo ""); \
 	SSH_PORT_OPT=$$([ -n "$$DEPLOY_PORT" ] && echo "-p $$DEPLOY_PORT" || echo ""); \
 	ssh $$SSH_KEY_OPT $$SSH_PORT_OPT $$DEPLOY_USER@$$DEPLOY_HOST "cd $$DEPLOY_PATH && bash"
-
