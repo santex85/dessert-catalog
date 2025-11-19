@@ -26,13 +26,13 @@ export default function ConfirmDialog({
   const handleConfirm = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    onConfirm();
+    onConfirm(e);
   };
 
   const handleCancel = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    onCancel();
+    onCancel(e);
   };
 
   return (
