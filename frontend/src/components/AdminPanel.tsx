@@ -83,7 +83,11 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
           confirmText="Delete"
           cancelText="Cancel"
           type="danger"
-          onConfirm={() => {
+          onConfirm={(e) => {
+            if (e) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
             confirmDelete();
           }}
           onCancel={() => {
