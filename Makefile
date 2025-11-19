@@ -115,14 +115,30 @@ run-all-bg: run-backend-bg run-frontend-bg ## Запустить всё в фо�
 stop: ## Остановить все фоновые процессы
 	@echo "$(GREEN)Остановка сервисов...$(NC)"
 	@if [ -f "$(BACKEND_DIR)/backend.pid" ]; then \
-		kill $$(cat $(BACKEND_DIR)/backend.pid) 2>/dev/null || true; \
-		rm $(BACKEND_DIR)/backend.pid; \
-		echo "$(GREEN)✓ Бэкенд остановлен$(NC)"; \
+		PID=$$(cat $(BACKEND_DIR)/backend.pid 2>/dev/null); \
+		if [ -n "$$PID" ] && ps -p $$PID > /dev/null 2>&1; then \
+			# Проверяем, что это действительно наш процесс (uvicorn или python)
+			if ps -p $$PID -o comm= 2>/dev/null | grep -qE "uvicorn|python"; then \
+				kill $$PID 2>/dev/null || true; \
+				echo "$(GREEN)✓ Бэкенд остановлен$(NC)"; \
+			else \
+				echo "$(YELLOW)⚠ PID $$PID не является процессом бэкенда$(NC)"; \
+			fi; \
+		fi; \
+		rm -f $(BACKEND_DIR)/backend.pid; \
 	fi
 	@if [ -f "$(FRONTEND_DIR)/frontend.pid" ]; then \
-		kill $$(cat $(FRONTEND_DIR)/frontend.pid) 2>/dev/null || true; \
-		rm $(FRONTEND_DIR)/frontend.pid; \
-		echo "$(GREEN)✓ Фронтенд остановлен$(NC)"; \
+		PID=$$(cat $(FRONTEND_DIR)/frontend.pid 2>/dev/null); \
+		if [ -n "$$PID" ] && ps -p $$PID > /dev/null 2>&1; then \
+			# Проверяем, что это действительно наш процесс (node или npm)
+			if ps -p $$PID -o comm= 2>/dev/null | grep -qE "node|npm"; then \
+				kill $$PID 2>/dev/null || true; \
+				echo "$(GREEN)✓ Фронтенд остановлен$(NC)"; \
+			else \
+				echo "$(YELLOW)⚠ PID $$PID не является процессом фронтенда$(NC)"; \
+			fi; \
+		fi; \
+		rm -f $(FRONTEND_DIR)/frontend.pid; \
 	fi
 
 restart: stop run-all-bg ## Перезапустить все сервисы
