@@ -213,22 +213,28 @@ docker-up: docker-check docker-stop-conflicts ## Запустить все се�
 		echo "$(YELLOW)⚠ ВАЖНО: Отредактируйте backend/.env и установите SECRET_KEY!$(NC)"; \
 	fi
 	@echo "$(YELLOW)Проверка подключения к Docker перед запуском...$(NC)"
-	@i=1; \
-	while [ $$i -le 5 ]; do \
-		if docker info >/dev/null 2>&1; then \
-			echo "$(GREEN)✓ Docker готов$(NC)"; \
-			break; \
-		fi; \
-		if [ $$i -eq 5 ]; then \
-			echo "$(YELLOW)⚠ Docker daemon недоступен после 5 попыток!$(NC)"; \
-			echo "$(YELLOW)Попробуйте запустить Docker Desktop: open -a Docker$(NC)"; \
-			echo "$(YELLOW)Или проверьте статус: docker info$(NC)"; \
-			exit 1; \
-		fi; \
-		echo "$(YELLOW)Ожидание Docker daemon... (попытка $$i/5)$(NC)"; \
-		sleep 2; \
-		i=$$((i + 1)); \
-	done
+	@if ! docker info >/dev/null 2>&1; then \
+		echo "$(YELLOW)⚠ Docker daemon недоступен после остановки конфликтов!$(NC)"; \
+		echo "$(YELLOW)Ожидание стабилизации Docker...$(NC)"; \
+		sleep 3; \
+		i=1; \
+		while [ $$i -le 3 ]; do \
+			if docker info >/dev/null 2>&1; then \
+				echo "$(GREEN)✓ Docker готов$(NC)"; \
+				break; \
+			fi; \
+			if [ $$i -eq 3 ]; then \
+				echo "$(YELLOW)⚠ Docker daemon недоступен!$(NC)"; \
+				echo "$(YELLOW)Попробуйте запустить Docker Desktop: open -a Docker$(NC)"; \
+				exit 1; \
+			fi; \
+			echo "$(YELLOW)Ожидание Docker daemon... (попытка $$i/3)$(NC)"; \
+			sleep 2; \
+			i=$$((i + 1)); \
+		done; \
+	else \
+		echo "$(GREEN)✓ Docker готов$(NC)"; \
+	fi
 	@$(DOCKER_COMPOSE) up -d || { \
 		echo "$(YELLOW)⚠ Ошибка при запуске $(DOCKER_COMPOSE).$(NC)"; \
 		echo "$(YELLOW)Проверьте:$(NC)"; \
@@ -309,7 +315,7 @@ deploy-remote: ## Execute deployment on remote server
 	@. deploy.env && \
 	SSH_KEY_OPT=$$([ -n "$$DEPLOY_KEY" ] && echo "-i $$DEPLOY_KEY" || echo ""); \
 	SSH_PORT_OPT=$$([ -n "$$DEPLOY_PORT" ] && echo "-p $$DEPLOY_PORT" || echo ""); \
-	COMPOSE_FILE=$${DEPLOY_COMPOSE_FILE:-$(DOCKER_COMPOSE).yml}; \
+	COMPOSE_FILE=$${DEPLOY_COMPOSE_FILE:-docker-compose.yml}; \
 	PROFILE_OPT=$$([ -n "$$DEPLOY_PROFILE" ] && echo "--profile $$DEPLOY_PROFILE" || echo ""); \
 	BRANCH=$${DEPLOY_BRANCH:-main}; \
 	echo "$(GREEN)Connecting to $$DEPLOY_USER@$$DEPLOY_HOST...$(NC)"; \
@@ -323,10 +329,10 @@ deploy-remote: ## Execute deployment on remote server
 		git pull origin $$BRANCH || echo '⚠ Git pull failed (continuing...)' && \
 		echo '✓ Code updated' && \
 		echo 'Building Docker images...' && \
-		$(DOCKER_COMPOSE) $$PROFILE_OPT -f $$COMPOSE_FILE build --no-cache || $(DOCKER_COMPOSE) $$PROFILE_OPT -f $$COMPOSE_FILE build && \
+		docker-compose $$PROFILE_OPT -f $$COMPOSE_FILE build --no-cache || docker compose $$PROFILE_OPT -f $$COMPOSE_FILE build || docker-compose $$PROFILE_OPT -f $$COMPOSE_FILE build && \
 		echo '✓ Images built' && \
 		echo 'Starting services...' && \
-		$(DOCKER_COMPOSE) $$PROFILE_OPT -f $$COMPOSE_FILE up -d && \
+		(docker-compose $$PROFILE_OPT -f $$COMPOSE_FILE up -d || docker compose $$PROFILE_OPT -f $$COMPOSE_FILE up -d) && \
 		echo '✓ Services started' && \
 		echo 'Cleaning up old images...' && \
 		docker image prune -f || true && \
@@ -337,15 +343,15 @@ deploy-status: ## Check deployment status on remote server
 	@. deploy.env && \
 	SSH_KEY_OPT=$$([ -n "$$DEPLOY_KEY" ] && echo "-i $$DEPLOY_KEY" || echo ""); \
 	SSH_PORT_OPT=$$([ -n "$$DEPLOY_PORT" ] && echo "-p $$DEPLOY_PORT" || echo ""); \
-	COMPOSE_FILE=$${DEPLOY_COMPOSE_FILE:-$(DOCKER_COMPOSE).yml}; \
-	ssh $$SSH_KEY_OPT $$SSH_PORT_OPT $$DEPLOY_USER@$$DEPLOY_HOST "cd $$DEPLOY_PATH && $(DOCKER_COMPOSE) -f $$COMPOSE_FILE ps"
+	COMPOSE_FILE=$${DEPLOY_COMPOSE_FILE:-docker-compose.yml}; \
+	ssh $$SSH_KEY_OPT $$SSH_PORT_OPT $$DEPLOY_USER@$$DEPLOY_HOST "cd $$DEPLOY_PATH && (docker-compose -f $$COMPOSE_FILE ps || docker compose -f $$COMPOSE_FILE ps)"
 
 deploy-logs: ## View logs from remote server
 	@. deploy.env && \
 	SSH_KEY_OPT=$$([ -n "$$DEPLOY_KEY" ] && echo "-i $$DEPLOY_KEY" || echo ""); \
 	SSH_PORT_OPT=$$([ -n "$$DEPLOY_PORT" ] && echo "-p $$DEPLOY_PORT" || echo ""); \
-	COMPOSE_FILE=$${DEPLOY_COMPOSE_FILE:-$(DOCKER_COMPOSE).yml}; \
-	ssh $$SSH_KEY_OPT $$SSH_PORT_OPT $$DEPLOY_USER@$$DEPLOY_HOST "cd $$DEPLOY_PATH && $(DOCKER_COMPOSE) -f $$COMPOSE_FILE logs -f"
+	COMPOSE_FILE=$${DEPLOY_COMPOSE_FILE:-docker-compose.yml}; \
+	ssh $$SSH_KEY_OPT $$SSH_PORT_OPT $$DEPLOY_USER@$$DEPLOY_HOST "cd $$DEPLOY_PATH && (docker-compose -f $$COMPOSE_FILE logs -f || docker compose -f $$COMPOSE_FILE logs -f)"
 
 deploy-shell: ## Open shell on remote server
 	@. deploy.env && \
