@@ -113,7 +113,7 @@ export default function DessertModal({ dessert, onClose }: DessertModalProps) {
           {dessert.price !== null && dessert.price !== undefined && (
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Price</h3>
-              <p className="text-2xl font-bold text-blue-600">{dessert.price.toFixed(2)} ₽</p>
+              <p className="text-2xl font-bold text-blue-600">{dessert.price.toFixed(2)} THB</p>
             </div>
           )}
         </div>

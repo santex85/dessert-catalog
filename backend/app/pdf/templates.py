@@ -261,7 +261,7 @@ class MinimalTemplate(PDFTemplate):
         # 6. Стоимость (если есть)
         if dessert.price is not None:
             price_style = ParagraphStyle('Price', fontName=self.fonts['main_bold'], fontSize=16, textColor=Colors.DARK_GREY, alignment=TA_CENTER, spaceBefore=10)
-            story.append(Paragraph(f"{dessert.price:.2f} ₽", price_style))
+            story.append(Paragraph(f"{dessert.price:.2f} THB", price_style))
         
         story.append(PageBreak())
 
@@ -308,7 +308,7 @@ class ModernTemplate(PDFTemplate):
         # Цена
         price_text = ""
         if dessert.price is not None:
-            price_text = f"{dessert.price:.2f} ₽"
+            price_text = f"{dessert.price:.2f} THB"
         
         if price_text:
             price_para = Paragraph(price_text, s['price'])
@@ -429,7 +429,7 @@ class LuxuryTemplate(PDFTemplate):
         # 5. Стоимость (если есть)
         if dessert.price is not None:
             price_style = ParagraphStyle('Price', fontName=self.fonts['serif_bold'], fontSize=18, textColor=Colors.GOLD, alignment=TA_CENTER, spaceAfter=10)
-            elements.append(Paragraph(f"{dessert.price:.2f} ₽", price_style))
+            elements.append(Paragraph(f"{dessert.price:.2f} THB", price_style))
         
         # 6. КБЖУ (Очень минималистично, одной строкой)
         if self.settings.include_nutrition:
@@ -641,7 +641,7 @@ class ClassicTemplate(PDFTemplate):
         if dessert.price is not None:
             right_col.append(Spacer(1, 0.2*cm))
             price_style = ParagraphStyle('Price', parent=s['heading'], fontSize=20, textColor=colors.HexColor('#27ae60'), spaceAfter=10)
-            right_col.append(Paragraph(f"<b>Price:</b> {dessert.price:.2f} ₽", price_style))
+            right_col.append(Paragraph(f"<b>Price:</b> {dessert.price:.2f} THB", price_style))
         
         # Объединяем колонки
         main_table = Table([

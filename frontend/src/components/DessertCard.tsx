@@ -72,7 +72,7 @@ export default function DessertCard({ dessert, isSelected, onSelect, onClick }: 
             <p className="text-xs text-gray-400">Weight: {dessert.weight}</p>
           )}
           {dessert.price !== null && dessert.price !== undefined && (
-            <p className="text-lg font-bold text-blue-600">{dessert.price.toFixed(2)} ₽</p>
+            <p className="text-lg font-bold text-blue-600">{dessert.price.toFixed(2)} THB</p>
           )}
         </div>
       </div>

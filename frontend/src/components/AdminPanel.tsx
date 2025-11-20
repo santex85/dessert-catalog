@@ -499,7 +499,7 @@ function DessertForm({ dessert, onClose, onSave }: DessertFormProps) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Price (₽)
+              Price (THB)
             </label>
             <input
               type="number"
