@@ -2,7 +2,7 @@
  * Утилита для работы с изображениями
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 /**
  * Получить полный URL изображения
@@ -18,12 +18,17 @@ export function getImageUrl(imageUrl: string | null | undefined): string | null 
     return imageUrl;
   }
 
-  // Если это локальный путь, добавляем базовый URL API
+  // Если это локальный путь, начинающийся с /, возвращаем как есть
+  // Nginx проксирует /static на backend, поэтому относительные пути работают
   if (imageUrl.startsWith('/')) {
-    return `${API_BASE_URL}${imageUrl}`;
+    return imageUrl;
   }
 
-  // Иначе считаем, что это относительный путь
-  return `${API_BASE_URL}/${imageUrl}`;
+  // Иначе считаем, что это относительный путь - добавляем базовый URL только если он задан
+  if (API_BASE_URL) {
+    return `${API_BASE_URL}/${imageUrl}`;
+  }
+  
+  return `/${imageUrl}`;
 }
 
