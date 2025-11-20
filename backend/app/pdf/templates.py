@@ -238,7 +238,9 @@ class MinimalTemplate(PDFTemplate):
         story.append(Spacer(1, 1.5*cm))
         
         # 2. Заголовок и Категория
-        story.append(Paragraph(dessert.category, s['category']))
+        # Отображаем категории через запятую или разделитель
+        categories_text = ', '.join([cat.strip() for cat in dessert.category.split(',')])
+        story.append(Paragraph(categories_text, s['category']))
         story.append(Paragraph(dessert.title, s['product_title']))
         
         # 3. Описание (ограничиваем ширину текста для читаемости)
@@ -304,7 +306,9 @@ class ModernTemplate(PDFTemplate):
         content_cells = []
         
         # Верхняя строка: Категория (как бейдж) и Цена (если есть)
-        cat_para = Paragraph(f"&nbsp; {dessert.category.upper()} &nbsp;", s['category_badge'])
+        # Отображаем все категории через запятую
+        categories_text = ', '.join([cat.strip().upper() for cat in dessert.category.split(',')])
+        cat_para = Paragraph(f"&nbsp; {categories_text} &nbsp;", s['category_badge'])
         # Цена
         price_text = ""
         if dessert.price is not None:
@@ -401,7 +405,8 @@ class LuxuryTemplate(PDFTemplate):
         elements = []
         
         # 1. Категория
-        elements.append(Paragraph(dessert.category, s['category']))
+        categories_text = ', '.join([cat.strip() for cat in dessert.category.split(',')])
+        elements.append(Paragraph(categories_text, s['category']))
         elements.append(Spacer(1, 0.2*cm))
         
         # 2. Заголовок
@@ -572,7 +577,8 @@ class ClassicTemplate(PDFTemplate):
         right_col.append(Spacer(1, 0.25*cm))
         
         # Категория в рамке
-        category_table = Table([[dessert.category]], colWidths=[11*cm])
+        categories_text = ', '.join([cat.strip() for cat in dessert.category.split(',')])
+        category_table = Table([[categories_text]], colWidths=[11*cm])
         category_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#ecf0f1')),
             ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#34495e')),

@@ -37,7 +37,13 @@ export default function Catalog({ desserts: initialDesserts }: CatalogProps) {
 
   const filteredDesserts = useMemo(() => {
     return desserts.filter((dessert) => {
-      const matchesCategory = !selectedCategory || dessert.category === selectedCategory;
+      // Поддержка нескольких категорий через запятую
+      let matchesCategory = true;
+      if (selectedCategory) {
+        const dessertCategories = dessert.category.split(',').map(c => c.trim().toLowerCase());
+        matchesCategory = dessertCategories.includes(selectedCategory.toLowerCase());
+      }
+      
       const matchesSearch = !searchQuery || 
         dessert.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (dessert.description && dessert.description.toLowerCase().includes(searchQuery.toLowerCase()));

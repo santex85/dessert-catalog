@@ -63,7 +63,13 @@ export default function DessertCard({ dessert, isSelected, onSelect, onClick }: 
         <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-2">
           {dessert.title}
         </h3>
-        <p className="text-sm text-gray-500 mb-2">{dessert.category}</p>
+        <div className="flex flex-wrap gap-1 mb-2">
+          {dessert.category.split(',').map((cat, idx) => (
+            <span key={idx} className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
+              {cat.trim()}
+            </span>
+          ))}
+        </div>
         {dessert.description && (
           <p className="text-sm text-gray-600 line-clamp-2">{dessert.description}</p>
         )}

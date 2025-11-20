@@ -154,8 +154,14 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">{dessert.title}</div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">{dessert.category}</div>
+                <td className="px-6 py-4">
+                  <div className="flex flex-wrap gap-1">
+                    {dessert.category.split(',').map((cat, idx) => (
+                      <span key={idx} className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
+                        {cat.trim()}
+                      </span>
+                    ))}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
@@ -216,7 +222,21 @@ function DessertForm({ dessert, onClose, onSave }: DessertFormProps) {
   });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
   const { error, success, warning } = useToastContext();
+
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  const loadCategories = async () => {
+    try {
+      const cats = await dessertsApi.getCategories();
+      setCategories(cats);
+    } catch (error) {
+      console.error('Error loading categories:', error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -261,15 +281,25 @@ function DessertForm({ dessert, onClose, onSave }: DessertFormProps) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Category *
+              Category * (можно указать несколько через запятую)
             </label>
             <input
               type="text"
               required
+              list="categories-list"
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              placeholder="Начните вводить или выберите из списка..."
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
+            <datalist id="categories-list">
+              {categories.map((cat) => (
+                <option key={cat} value={cat} />
+              ))}
+            </datalist>
+            <p className="text-xs text-gray-500 mt-1">
+              Пример: "Торты, Пирожные" или "Десерты"
+            </p>
           </div>
 
           <div>

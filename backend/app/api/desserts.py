@@ -26,7 +26,29 @@ def get_desserts(
         query = query.filter(Dessert.is_active == is_active)
 
     if category:
-        query = query.filter(Dessert.category == category)
+        # Поддержка нескольких категорий через запятую
+        # Если указана одна категория, ищем точное совпадение или категорию в списке
+        # Если указано несколько категорий через запятую, ищем десерты, у которых есть хотя бы одна из них
+        category_list = [cat.strip() for cat in category.split(',')]
+        if len(category_list) == 1:
+            # Одна категория - ищем точное совпадение или категорию в списке через запятую
+            query = query.filter(
+                or_(
+                    Dessert.category == category_list[0],
+                    Dessert.category.like(f"%{category_list[0]}%")
+                )
+            )
+        else:
+            # Несколько категорий - ищем десерты, у которых есть хотя бы одна из них
+            conditions = []
+            for cat in category_list:
+                conditions.append(
+                    or_(
+                        Dessert.category == cat,
+                        Dessert.category.like(f"%{cat}%")
+                    )
+                )
+            query = query.filter(or_(*conditions))
 
     if search:
         search_term = f"%{search}%"
@@ -43,9 +65,16 @@ def get_desserts(
 
 @router.get("/categories", response_model=List[str])
 def get_categories(db: Session = Depends(get_db)):
-    """Получить список всех категорий"""
-    categories = db.query(Dessert.category).distinct().all()
-    return [cat[0] for cat in categories if cat[0]]
+    """Получить список всех категорий (уникальные, разделенные по запятой)"""
+    categories_raw = db.query(Dessert.category).distinct().all()
+    # Собираем все уникальные категории, разделяя по запятой
+    all_categories = set()
+    for cat_tuple in categories_raw:
+        if cat_tuple[0]:
+            # Разделяем категории по запятой и добавляем каждую отдельно
+            for cat in cat_tuple[0].split(','):
+                all_categories.add(cat.strip())
+    return sorted(list(all_categories))
 
 
 @router.get("/{dessert_id}", response_model=DessertResponse)

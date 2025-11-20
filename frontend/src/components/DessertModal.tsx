@@ -46,10 +46,12 @@ export default function DessertModal({ dessert, onClose }: DessertModalProps) {
           )}
 
           {/* Категория */}
-          <div>
-            <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-              {dessert.category}
-            </span>
+          <div className="flex flex-wrap gap-2">
+            {dessert.category.split(',').map((cat, idx) => (
+              <span key={idx} className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                {cat.trim()}
+              </span>
+            ))}
           </div>
 
           {/* Описание */}
