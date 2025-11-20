@@ -14,6 +14,7 @@ class DessertBase(BaseModel):
     fats: Optional[float] = Field(None, ge=0)
     carbs: Optional[float] = Field(None, ge=0)
     weight: Optional[str] = None
+    price: Optional[float] = Field(None, ge=0, description="Стоимость десерта")
     is_active: bool = True
 
 
@@ -32,6 +33,7 @@ class DessertUpdate(BaseModel):
     fats: Optional[float] = Field(None, ge=0)
     carbs: Optional[float] = Field(None, ge=0)
     weight: Optional[str] = None
+    price: Optional[float] = Field(None, ge=0, description="Стоимость десерта")
     is_active: Optional[bool] = None
 
 

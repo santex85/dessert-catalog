@@ -258,6 +258,11 @@ class MinimalTemplate(PDFTemplate):
         if self.settings.include_ingredients and dessert.ingredients:
             story.append(Paragraph(f"Ingredients: {dessert.ingredients}", s['ingredients']))
         
+        # 6. Стоимость (если есть)
+        if dessert.price is not None:
+            price_style = ParagraphStyle('Price', fontName=self.fonts['main_bold'], fontSize=16, textColor=Colors.DARK_GREY, alignment=TA_CENTER, spaceBefore=10)
+            story.append(Paragraph(f"{dessert.price:.2f} ₽", price_style))
+        
         story.append(PageBreak())
 
 
@@ -300,10 +305,10 @@ class ModernTemplate(PDFTemplate):
         
         # Верхняя строка: Категория (как бейдж) и Цена (если есть)
         cat_para = Paragraph(f"&nbsp; {dessert.category.upper()} &nbsp;", s['category_badge'])
-        # Цена не всегда есть в модели, поэтому проверяем
+        # Цена
         price_text = ""
-        if hasattr(dessert, 'price') and dessert.price:
-            price_text = f"$ {dessert.price:.2f}"
+        if dessert.price is not None:
+            price_text = f"{dessert.price:.2f} ₽"
         
         if price_text:
             price_para = Paragraph(price_text, s['price'])
@@ -421,7 +426,12 @@ class LuxuryTemplate(PDFTemplate):
             elements.append(Paragraph(dessert.description, desc_style))
             elements.append(Spacer(1, 0.8*cm))
         
-        # 5. КБЖУ (Очень минималистично, одной строкой)
+        # 5. Стоимость (если есть)
+        if dessert.price is not None:
+            price_style = ParagraphStyle('Price', fontName=self.fonts['serif_bold'], fontSize=18, textColor=Colors.GOLD, alignment=TA_CENTER, spaceAfter=10)
+            elements.append(Paragraph(f"{dessert.price:.2f} ₽", price_style))
+        
+        # 6. КБЖУ (Очень минималистично, одной строкой)
         if self.settings.include_nutrition:
             if dessert.calories is not None:
                 calories_val = f"{dessert.calories:.0f}" if dessert.calories else "0"
@@ -626,6 +636,12 @@ class ClassicTemplate(PDFTemplate):
         # Вес
         if dessert.weight:
             right_col.append(Paragraph(f"<b>Weight/Packaging:</b> {dessert.weight}", s['normal']))
+        
+        # Стоимость
+        if dessert.price is not None:
+            right_col.append(Spacer(1, 0.2*cm))
+            price_style = ParagraphStyle('Price', parent=s['heading'], fontSize=20, textColor=colors.HexColor('#27ae60'), spaceAfter=10)
+            right_col.append(Paragraph(f"<b>Price:</b> {dessert.price:.2f} ₽", price_style))
         
         # Объединяем колонки
         main_table = Table([

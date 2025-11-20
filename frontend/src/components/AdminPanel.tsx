@@ -211,6 +211,7 @@ function DessertForm({ dessert, onClose, onSave }: DessertFormProps) {
     fats: dessert?.fats || null,
     carbs: dessert?.carbs || null,
     weight: dessert?.weight || '',
+    price: dessert?.price || null,
     is_active: dessert?.is_active ?? true,
   });
   const [saving, setSaving] = useState(false);
@@ -492,6 +493,25 @@ function DessertForm({ dessert, onClose, onSave }: DessertFormProps) {
               type="text"
               value={formData.weight || ''}
               onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Price (₽)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.price || ''}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  price: e.target.value ? parseFloat(e.target.value) : null,
+                })
+              }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
           </div>

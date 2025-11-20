@@ -10,6 +10,7 @@ export interface Dessert {
   fats: number | null;
   carbs: number | null;
   weight: string | null;
+  price: number | null;
   is_active: boolean;
 }
 

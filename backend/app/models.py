@@ -18,6 +18,7 @@ class Dessert(Base):
     fats = Column(Float)
     carbs = Column(Float)
     weight = Column(String(50))  # Вес/фасовка
+    price = Column(Float)  # Стоимость
     is_active = Column(Boolean, default=True, index=True)
 
     def __repr__(self):

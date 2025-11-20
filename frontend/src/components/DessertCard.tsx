@@ -67,9 +67,14 @@ export default function DessertCard({ dessert, isSelected, onSelect, onClick }: 
         {dessert.description && (
           <p className="text-sm text-gray-600 line-clamp-2">{dessert.description}</p>
         )}
-        {dessert.weight && (
-          <p className="text-xs text-gray-400 mt-2">Weight: {dessert.weight}</p>
-        )}
+        <div className="flex justify-between items-center mt-2">
+          {dessert.weight && (
+            <p className="text-xs text-gray-400">Weight: {dessert.weight}</p>
+          )}
+          {dessert.price !== null && dessert.price !== undefined && (
+            <p className="text-lg font-bold text-blue-600">{dessert.price.toFixed(2)} ₽</p>
+          )}
+        </div>
       </div>
 
       {/* Кнопка "Подробнее" при наведении */}
