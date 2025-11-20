@@ -12,8 +12,13 @@ if [ -n "$DATABASE_URL" ] && [[ "$DATABASE_URL" == postgresql* ]]; then
 fi
 
 # Ensure uploads directory exists with proper permissions
+# Note: This runs as root before switching to appuser
 mkdir -p /app/uploads/images
 chmod -R 755 /app/uploads || true
+# Change ownership to appuser if it exists (for when running as root in entrypoint)
+if id appuser &>/dev/null; then
+    chown -R appuser:appuser /app/uploads || true
+fi
 
 # Initialize database structure (only if database is empty)
 # This runs only once when the container starts for the first time
