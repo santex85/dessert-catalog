@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, Navigate, Link } from 'react-router-dom';
 import Catalog from './components/Catalog';
 import AdminPanel from './components/AdminPanel';
 import Login from './components/Login';
 import Register from './components/Register';
+import Profile from './components/Profile';
 import { Dessert } from './types';
 import { dessertsApi } from './services/api';
 import { useAuth } from './contexts/AuthContext';
@@ -37,6 +38,11 @@ function App() {
   const [loading, setLoading] = useState(true);
   const { isAuthenticated, isAdmin: userIsAdmin, logout, user } = useAuth();
   const navigate = useNavigate();
+
+  // Отладка
+  useEffect(() => {
+    console.log('App render - isAuthenticated:', isAuthenticated, 'user:', user);
+  }, [isAuthenticated, user]);
 
   useEffect(() => {
     loadDesserts();
@@ -75,13 +81,19 @@ function App() {
                 <div className="flex justify-between items-center">
                   <h1 className="text-3xl font-bold text-gray-900">Dessert Catalog</h1>
                   <div className="flex gap-3 items-center">
-                    {isAuthenticated ? (
+                    {isAuthenticated && user ? (
                       <>
-                        {user && (
-                          <span className="text-sm text-gray-600">
-                            {user.username} {user.is_admin && '(Admin)'}
-                          </span>
-                        )}
+                        <a
+                          href="/profile"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            navigate('/profile');
+                          }}
+                          className="text-sm text-blue-600 hover:text-blue-800 underline cursor-pointer font-medium"
+                          style={{ display: 'inline-block', textDecoration: 'underline', color: '#2563eb' }}
+                        >
+                          {user.username}{user.is_admin ? ' (Admin)' : ''}
+                        </a>
                         {userIsAdmin && (
                           <button
                             onClick={() => {
@@ -145,15 +157,39 @@ function App() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                   <div className="flex justify-between items-center">
                     <h1 className="text-3xl font-bold text-gray-900">Admin Panel</h1>
-                    <button
-                      onClick={() => {
-                        setIsAdmin(false);
-                        navigate('/');
-                      }}
-                      className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                    >
-                      Back to Catalog
-                    </button>
+                    <div className="flex gap-3 items-center">
+                      {user && (
+                        <a
+                          href="/profile"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            navigate('/profile');
+                          }}
+                          className="text-sm text-blue-600 hover:text-blue-800 underline cursor-pointer font-medium"
+                          style={{ display: 'inline-block', textDecoration: 'underline', color: '#2563eb' }}
+                        >
+                          {user.username}{user.is_admin ? ' (Admin)' : ''}
+                        </a>
+                      )}
+                      <button
+                        onClick={() => {
+                          setIsAdmin(false);
+                          navigate('/');
+                        }}
+                        className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                      >
+                        Back to Catalog
+                      </button>
+                      <button
+                        onClick={() => {
+                          logout();
+                          navigate('/');
+                        }}
+                        className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        Logout
+                      </button>
+                    </div>
                   </div>
                 </div>
               </header>
@@ -171,6 +207,14 @@ function App() {
       <Route
         path="/register"
         element={isAuthenticated ? <Navigate to="/" replace /> : <Register />}
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        }
       />
     </Routes>
   );

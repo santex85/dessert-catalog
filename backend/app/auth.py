@@ -94,7 +94,7 @@ async def get_current_user(
     """Получить текущего пользователя из токена"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Не удалось подтвердить учетные данные",
+        detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
@@ -111,7 +111,7 @@ async def get_current_user(
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Пользователь неактивен"
+            detail="Inactive user"
         )
     return user
 
@@ -123,7 +123,7 @@ async def get_current_admin_user(
     if not current_user.is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Недостаточно прав доступа"
+            detail="Not enough permissions"
         )
     return current_user
 

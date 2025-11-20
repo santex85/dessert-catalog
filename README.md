@@ -39,7 +39,7 @@ make docker-init-db
 Или вручную:
 ```bash
 docker-compose up -d
-docker-compose exec backend python init_db.py
+docker-compose exec backend python init_prod_db.py
 ```
 
 Для production с PostgreSQL:
@@ -113,9 +113,9 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-5. Инициализируйте базу данных с тестовыми данными:
+5. Инициализируйте структуру базы данных:
 ```bash
-python init_db.py
+python init_prod_db.py
 ```
 
 6. Запустите сервер:
@@ -180,7 +180,7 @@ Cataloge_curs/
 │   │   └── pdf/               # Модуль генерации PDF
 │   │       └── generator.py   # Логика создания PDF файлов
 │   ├── main.py                # Точка входа приложения
-│   ├── init_db.py             # Скрипт инициализации БД
+│   ├── init_prod_db.py        # Скрипт инициализации структуры БД
 │   └── requirements.txt       # Python зависимости
 ├── frontend/                  # React приложение
 │   ├── src/

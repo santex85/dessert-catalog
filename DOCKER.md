@@ -2,26 +2,6 @@
 
 ## Quick Start
 
-### Development (SQLite)
-
-1. **Create environment file:**
-   ```bash
-   cp backend/env.example backend/.env
-   # Edit backend/.env and set SECRET_KEY
-   ```
-
-2. **Start services:**
-   ```bash
-   docker-compose -f docker-compose.dev.yml up -d
-   ```
-   
-   The database will be **automatically initialized** with test data on first start.
-
-3. **Access application:**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:8000
-   - API Docs: http://localhost:8000/docs
-
 ### Production (PostgreSQL)
 
 1. **Create environment files:**
@@ -44,32 +24,20 @@
    docker-compose --profile production up -d
    ```
    
-   The database will be **automatically initialized** with test data on first start.
+   The database structure will be **automatically created** on first start (no test data).
 
-## Test Data
+4. **Create admin user:**
+   ```bash
+   docker-compose exec backend python create_admin.py <username> <email> <password>
+   ```
 
-When the database is initialized, it creates:
+## Database Initialization
 
-- **20 test desserts** in various categories:
-  - Cakes: New York Cheesecake, Red Velvet, Strawberry Shortcake, Carrot Cake
-  - Desserts: Tiramisu, Panna Cotta, Chocolate Mousse, Creme Brulee
-  - Pastries: Chocolate Eclair, Macarons Assortment
-  - Cookies: Chocolate Chip Cookies
-  - Tarts: Lemon Tart, Fruit Tart
-  - Pies: Apple Pie, Pecan Pie
-  - Vegan: Vegan Brownie
-  - Sugar-Free: Sugar-Free Cake
-  - Gluten-Free: Gluten-Free Chocolate Cake
-  - Ice Cream: Ice Cream Sundae
-  - Breads: Banana Bread
-
-- **2 test users**:
-  - **Admin**: `admin` / `admin123` (has admin privileges)
-  - **Regular user**: `user` / `user123` (regular user)
+When the container starts for the first time, it automatically creates the database structure (tables) but **does not insert any test data**.
 
 ### Manual Initialization
 
-If you need to manually initialize or re-initialize the database:
+If you need to manually initialize the database structure:
 
 ```bash
 make docker-init-db
@@ -78,10 +46,10 @@ make docker-init-db
 Or directly:
 
 ```bash
-docker compose exec backend python init_db.py
+docker compose exec backend python init_prod_db.py
 ```
 
-**Note**: The script checks if data already exists and won't duplicate it. To reset the database, remove the database file or volume first.
+**Note**: This only creates the database structure. You need to create users and add data manually or through the admin panel.
 
 ## Docker Compose Commands
 
@@ -120,8 +88,8 @@ docker-compose up -d
 # Backend shell
 docker-compose exec backend bash
 
-# Run Python script
-docker-compose exec backend python init_db.py
+# Initialize database structure
+docker-compose exec backend python init_prod_db.py
 
 # Create admin user
 docker-compose exec backend python create_admin.py admin admin@example.com admin123
@@ -237,8 +205,7 @@ docker-compose up -d
 
 ## Development Tips
 
-- Use `docker-compose.dev.yml` for hot-reload
-- Mount source code as volume for live changes
 - Use `docker-compose logs -f` to watch logs
 - Access containers with `docker-compose exec <service> bash`
+- For local development, mount source code as volume in docker-compose.yml
 

@@ -86,3 +86,20 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: Optional[str] = None
+
+
+class UpdateEmailRequest(BaseModel):
+    """Запрос на обновление email"""
+    email: EmailStr
+
+
+class UpdatePasswordRequest(BaseModel):
+    """Запрос на изменение пароля"""
+    current_password: str = Field(..., min_length=6, description="Текущий пароль")
+    new_password: str = Field(..., min_length=6, description="Новый пароль")
+
+
+class ProfileUpdateResponse(BaseModel):
+    """Ответ при обновлении профиля"""
+    message: str
+    user: UserResponse

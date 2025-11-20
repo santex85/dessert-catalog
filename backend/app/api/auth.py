@@ -12,7 +12,16 @@ from app.auth import (
     get_current_user,
     get_current_admin_user,
 )
-from app.schemas import UserCreate, UserResponse, Token, UserLogin
+from app.schemas import (
+    UserCreate, 
+    UserResponse, 
+    Token, 
+    UserLogin,
+    UpdateEmailRequest,
+    UpdatePasswordRequest,
+    ProfileUpdateResponse
+)
+from app.auth import verify_password
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -114,4 +123,76 @@ def get_current_user_info(current_user: User = Depends(get_current_user)):
 def check_admin_access(current_user: User = Depends(get_current_admin_user)):
     """Проверка доступа администратора"""
     return {"is_admin": True, "username": current_user.username}
+
+
+@router.put("/profile/email", response_model=ProfileUpdateResponse)
+def update_email(
+    email_data: UpdateEmailRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Обновить email пользователя"""
+    # Проверка, что новый email не занят другим пользователем
+    existing_user = get_user_by_email(db, email_data.email)
+    if existing_user and existing_user.id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User with this email already exists"
+        )
+    
+    # Обновление email
+    current_user.email = email_data.email
+    db.commit()
+    db.refresh(current_user)
+    
+    return ProfileUpdateResponse(
+        message="Email updated successfully",
+        user=UserResponse(
+            id=current_user.id,
+            username=current_user.username,
+            email=current_user.email,
+            is_active=current_user.is_active,
+            is_admin=current_user.is_admin,
+            created_at=current_user.created_at
+        )
+    )
+
+
+@router.put("/profile/password", response_model=ProfileUpdateResponse)
+def update_password(
+    password_data: UpdatePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Изменить пароль пользователя"""
+    # Проверка текущего пароля
+    if not verify_password(password_data.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect"
+        )
+    
+    # Проверка, что новый пароль отличается от текущего
+    if verify_password(password_data.new_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different from current password"
+        )
+    
+    # Обновление пароля
+    current_user.hashed_password = get_password_hash(password_data.new_password)
+    db.commit()
+    db.refresh(current_user)
+    
+    return ProfileUpdateResponse(
+        message="Password updated successfully",
+        user=UserResponse(
+            id=current_user.id,
+            username=current_user.username,
+            email=current_user.email,
+            is_active=current_user.is_active,
+            is_admin=current_user.is_admin,
+            created_at=current_user.created_at
+        )
+    )
 

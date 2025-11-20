@@ -139,5 +139,22 @@ export const authApi = {
     const userStr = localStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
   },
+
+  updateEmail: async (email: string): Promise<{ message: string; user: User }> => {
+    const response = await api.put<{ message: string; user: User }>('/auth/profile/email', { email });
+    // Обновляем сохраненного пользователя
+    localStorage.setItem('user', JSON.stringify(response.data.user));
+    return response.data;
+  },
+
+  updatePassword: async (currentPassword: string, newPassword: string): Promise<{ message: string; user: User }> => {
+    const response = await api.put<{ message: string; user: User }>('/auth/profile/password', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
+    // Обновляем сохраненного пользователя
+    localStorage.setItem('user', JSON.stringify(response.data.user));
+    return response.data;
+  },
 };
 

@@ -15,11 +15,12 @@ fi
 mkdir -p /app/uploads/images
 chmod -R 755 /app/uploads || true
 
-# Initialize database with test data (only if database is empty)
+# Initialize database structure (only if database is empty)
 # This runs only once when the container starts for the first time
+# Note: This only creates tables, no test data is inserted
 if [ ! -f /app/.db_initialized ]; then
-    echo "Initializing database with test data..."
-    python init_db.py && touch /app/.db_initialized || echo "Database initialization completed or skipped"
+    echo "Initializing database structure..."
+    python init_prod_db.py && touch /app/.db_initialized || echo "Database initialization completed or skipped"
 else
     echo "Database already initialized, skipping..."
 fi

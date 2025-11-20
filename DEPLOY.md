@@ -120,7 +120,8 @@ ssh-copy-id -i ~/.ssh/id_rsa.pub deploy@your-server.com
 # On server, manually run first time
 cd /var/www/catalog
 docker-compose --profile production up -d
-docker-compose exec backend python init_db.py
+docker-compose exec backend python init_prod_db.py
+docker-compose exec backend python create_admin.py <username> <email> <password>
 ```
 
 ## Troubleshooting
@@ -172,7 +173,7 @@ Edit `deploy.env`:
 
 ```bash
 DEPLOY_PRE_COMMANDS="cd /var/www/catalog && git fetch,cd /var/www/catalog && npm install"
-DEPLOY_POST_COMMANDS="cd /var/www/catalog && docker-compose exec backend python init_db.py"
+DEPLOY_POST_COMMANDS="cd /var/www/catalog && docker-compose exec backend python init_prod_db.py"
 ```
 
 ### Multiple Environments
