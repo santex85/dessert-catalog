@@ -2,10 +2,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies (including gosu for user switching)
 RUN apt-get update && apt-get install -y \
     gcc \
     curl \
+    gosu \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -28,7 +29,9 @@ RUN chmod +x /app/entrypoint.sh
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app
-USER appuser
+
+# Keep running as root for entrypoint (it will switch to appuser)
+# This allows entrypoint to set up permissions properly
 
 # Expose port
 EXPOSE 8000
