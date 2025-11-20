@@ -21,6 +21,7 @@ export interface PDFExportSettings {
   include_title_page: boolean;
   company_name?: string;
   manager_contact?: string;
+  logo_url?: string;
   template?: string;
 }
 
@@ -36,6 +37,9 @@ export interface User {
   email: string;
   is_active: boolean;
   is_admin: boolean;
+  logo_url?: string | null;
+  company_name?: string | null;
+  manager_contact?: string | null;
   created_at?: string;
 }
 

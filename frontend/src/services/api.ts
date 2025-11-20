@@ -156,5 +156,12 @@ export const authApi = {
     localStorage.setItem('user', JSON.stringify(response.data.user));
     return response.data;
   },
+
+  updateCompanyProfile: async (data: { logo_url?: string; company_name?: string; manager_contact?: string }): Promise<{ message: string; user: User }> => {
+    const response = await api.put<{ message: string; user: User }>('/auth/profile/company', data);
+    // Обновляем сохраненного пользователя
+    localStorage.setItem('user', JSON.stringify(response.data.user));
+    return response.data;
+  },
 };
 

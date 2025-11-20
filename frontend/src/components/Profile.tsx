@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authApi } from '../services/api';
+import { authApi, uploadApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useToastContext } from '../contexts/ToastContext';
+import { getImageUrl } from '../utils/image';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -16,10 +17,19 @@ export default function Profile() {
   const [loading, setLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
+  const [companyLoading, setCompanyLoading] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  
+  const [logoUrl, setLogoUrl] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [managerContact, setManagerContact] = useState('');
 
   useEffect(() => {
     if (user) {
       setEmail(user.email || '');
+      setLogoUrl(user.logo_url || '');
+      setCompanyName(user.company_name || '');
+      setManagerContact(user.manager_contact || '');
     }
   }, [user]);
 
@@ -85,6 +95,56 @@ export default function Profile() {
       error(err.response?.data?.detail || 'Error updating password');
     } finally {
       setPasswordLoading(false);
+    }
+  };
+
+  const handleUpdateCompanyProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      setCompanyLoading(true);
+      await authApi.updateCompanyProfile({
+        logo_url: logoUrl || undefined,
+        company_name: companyName || undefined,
+        manager_contact: managerContact || undefined,
+      });
+      success('Company profile updated successfully');
+      await refreshUser();
+    } catch (err: any) {
+      console.error('Error updating company profile:', err);
+      error(err.response?.data?.detail || 'Error updating company profile');
+    } finally {
+      setCompanyLoading(false);
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      error('File is too large. Maximum size: 10MB');
+      return;
+    }
+
+    try {
+      setUploadingLogo(true);
+      const result = await uploadApi.uploadImage(file);
+      setLogoUrl(result.url);
+      // Автоматически сохраняем после загрузки
+      await authApi.updateCompanyProfile({
+        logo_url: result.url,
+        company_name: companyName || undefined,
+        manager_contact: managerContact || undefined,
+      });
+      await refreshUser();
+      success('Logo uploaded successfully');
+    } catch (err: any) {
+      console.error('Error uploading logo:', err);
+      error(err.response?.data?.detail || 'Error uploading logo');
+    } finally {
+      setUploadingLogo(false);
+      e.target.value = '';
     }
   };
 
@@ -219,6 +279,97 @@ export default function Profile() {
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {passwordLoading ? 'Updating...' : 'Update Password'}
+            </button>
+          </form>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Company Profile</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            This information will be used on the title page of PDF catalogs
+          </p>
+          <form onSubmit={handleUpdateCompanyProfile} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Company Logo
+              </label>
+              {logoUrl && (
+                <div className="mb-3">
+                  <img
+                    src={getImageUrl(logoUrl) || logoUrl}
+                    alt="Company logo"
+                    className="w-32 h-32 object-contain border border-gray-300 rounded-lg p-2"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                disabled={uploadingLogo}
+                onChange={handleLogoUpload}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
+              />
+              {uploadingLogo && (
+                <div className="mt-2 text-xs text-blue-600">Uploading logo...</div>
+              )}
+              {logoUrl && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLogoUrl('');
+                    authApi.updateCompanyProfile({
+                      logo_url: '',
+                      company_name: companyName || undefined,
+                      manager_contact: managerContact || undefined,
+                    }).then(() => {
+                      refreshUser();
+                      success('Logo removed');
+                    });
+                  }}
+                  className="mt-2 text-sm text-red-600 hover:text-red-800"
+                >
+                  Remove logo
+                </button>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-1">
+                Company Name
+              </label>
+              <input
+                type="text"
+                id="companyName"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter company name"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="managerContact" className="block text-sm font-medium text-gray-700 mb-1">
+                Manager Contact
+              </label>
+              <input
+                type="text"
+                id="managerContact"
+                value={managerContact}
+                onChange={(e) => setManagerContact(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Phone, email, etc."
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={companyLoading}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              {companyLoading ? 'Saving...' : 'Save Company Profile'}
             </button>
           </form>
         </div>

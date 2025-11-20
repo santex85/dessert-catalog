@@ -52,6 +52,7 @@ class PDFExportSettings(BaseModel):
     include_title_page: bool = Field(True, description="Добавить титульный лист")
     company_name: Optional[str] = Field(None, description="Название компании")
     manager_contact: Optional[str] = Field(None, description="Контакты менеджера")
+    logo_url: Optional[str] = Field(None, description="URL логотипа компании")
     template: str = Field('minimal', description="Шаблон дизайна: minimal, classic, modern, luxury")
 
 
@@ -74,6 +75,9 @@ class UserResponse(UserBase):
     id: int
     is_active: bool
     is_admin: bool
+    logo_url: Optional[str] = None
+    company_name: Optional[str] = None
+    manager_contact: Optional[str] = None
     created_at: Optional[datetime] = None
 
     class Config:
@@ -105,3 +109,10 @@ class ProfileUpdateResponse(BaseModel):
     """Ответ при обновлении профиля"""
     message: str
     user: UserResponse
+
+
+class UpdateCompanyProfileRequest(BaseModel):
+    """Запрос на обновление профиля компании"""
+    logo_url: Optional[str] = Field(None, description="URL логотипа компании")
+    company_name: Optional[str] = Field(None, max_length=200, description="Название компании")
+    manager_contact: Optional[str] = Field(None, max_length=500, description="Контакты менеджера")

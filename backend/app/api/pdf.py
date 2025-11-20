@@ -34,6 +34,14 @@ def export_pdf(
     if not desserts:
         raise HTTPException(status_code=404, detail="Desserts not found")
     
+    # Если данные не указаны в настройках, используем данные из профиля пользователя
+    if not settings.company_name and current_user.company_name:
+        settings.company_name = current_user.company_name
+    if not settings.manager_contact and current_user.manager_contact:
+        settings.manager_contact = current_user.manager_contact
+    if not settings.logo_url and current_user.logo_url:
+        settings.logo_url = current_user.logo_url
+    
     # Generate PDF
     pdf_buffer = generate_pdf(desserts, settings)
     

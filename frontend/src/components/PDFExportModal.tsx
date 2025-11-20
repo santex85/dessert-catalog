@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { pdfApi } from '../services/api';
 import { PDFExportSettings, PDFTemplate } from '../types';
 import { useToastContext } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface PDFExportModalProps {
   selectedIds: number[];
@@ -32,6 +33,7 @@ const templates: PDFTemplate[] = [
 ];
 
 export default function PDFExportModal({ selectedIds, onClose }: PDFExportModalProps) {
+  const { user } = useAuth();
   const [settings, setSettings] = useState<PDFExportSettings>({
     dessert_ids: selectedIds,
     include_ingredients: true,
@@ -43,6 +45,18 @@ export default function PDFExportModal({ selectedIds, onClose }: PDFExportModalP
   });
   const [loading, setLoading] = useState(false);
   const { error, success } = useToastContext();
+
+  useEffect(() => {
+    // Заполняем данные из профиля пользователя
+    if (user) {
+      setSettings(prev => ({
+        ...prev,
+        company_name: user.company_name || '',
+        manager_contact: user.manager_contact || '',
+        logo_url: user.logo_url || '',
+      }));
+    }
+  }, [user]);
 
   const handleExport = async () => {
     try {

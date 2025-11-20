@@ -19,7 +19,8 @@ from app.schemas import (
     UserLogin,
     UpdateEmailRequest,
     UpdatePasswordRequest,
-    ProfileUpdateResponse
+    ProfileUpdateResponse,
+    UpdateCompanyProfileRequest
 )
 from app.auth import verify_password
 
@@ -82,6 +83,9 @@ def login(
             email=user.email,
             is_active=user.is_active,
             is_admin=user.is_admin,
+            logo_url=user.logo_url,
+            company_name=user.company_name,
+            manager_contact=user.manager_contact,
             created_at=user.created_at
         )
     )
@@ -108,6 +112,9 @@ def login_json(credentials: UserLogin, db: Session = Depends(get_db)):
             email=user.email,
             is_active=user.is_active,
             is_admin=user.is_admin,
+            logo_url=user.logo_url,
+            company_name=user.company_name,
+            manager_contact=user.manager_contact,
             created_at=user.created_at
         )
     )
@@ -153,6 +160,9 @@ def update_email(
             email=current_user.email,
             is_active=current_user.is_active,
             is_admin=current_user.is_admin,
+            logo_url=current_user.logo_url,
+            company_name=current_user.company_name,
+            manager_contact=current_user.manager_contact,
             created_at=current_user.created_at
         )
     )
@@ -192,7 +202,43 @@ def update_password(
             email=current_user.email,
             is_active=current_user.is_active,
             is_admin=current_user.is_admin,
+            logo_url=current_user.logo_url,
+            company_name=current_user.company_name,
+            manager_contact=current_user.manager_contact,
             created_at=current_user.created_at
         )
     )
 
+
+@router.put("/profile/company", response_model=ProfileUpdateResponse)
+def update_company_profile(
+    profile_data: UpdateCompanyProfileRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Обновить профиль компании (логотип, название, контакты)"""
+    # Обновление полей профиля компании
+    if profile_data.logo_url is not None:
+        current_user.logo_url = profile_data.logo_url
+    if profile_data.company_name is not None:
+        current_user.company_name = profile_data.company_name
+    if profile_data.manager_contact is not None:
+        current_user.manager_contact = profile_data.manager_contact
+    
+    db.commit()
+    db.refresh(current_user)
+    
+    return ProfileUpdateResponse(
+        message="Company profile updated successfully",
+        user=UserResponse(
+            id=current_user.id,
+            username=current_user.username,
+            email=current_user.email,
+            is_active=current_user.is_active,
+            is_admin=current_user.is_admin,
+            logo_url=current_user.logo_url,
+            company_name=current_user.company_name,
+            manager_contact=current_user.manager_contact,
+            created_at=current_user.created_at
+        )
+    )

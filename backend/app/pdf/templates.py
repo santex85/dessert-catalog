@@ -216,7 +216,19 @@ class MinimalTemplate(PDFTemplate):
     
     def create_title_page(self, story: List) -> None:
         s = self.create_styles()
-        story.append(Spacer(1, 8*cm))
+        
+        # Логотип компании (если есть)
+        if self.settings.logo_url:
+            logo = self._load_image(self.settings.logo_url, width=6*cm, height=6*cm)
+            if logo:
+                story.append(Spacer(1, 3*cm))
+                story.append(logo)
+                story.append(Spacer(1, 1*cm))
+            else:
+                story.append(Spacer(1, 8*cm))
+        else:
+            story.append(Spacer(1, 8*cm))
+        
         company_name = self.settings.company_name or "Dessert Catalog"
         story.append(Paragraph(company_name.upper(), s['title']))
         story.append(Spacer(1, 0.5*cm))
@@ -287,7 +299,18 @@ class ModernTemplate(PDFTemplate):
     
     def create_title_page(self, story: List) -> None:
         # Простая титулка для Modern
-        story.append(Spacer(1, 10*cm))
+        # Логотип компании (если есть)
+        if self.settings.logo_url:
+            logo = self._load_image(self.settings.logo_url, width=6*cm, height=6*cm)
+            if logo:
+                story.append(Spacer(1, 4*cm))
+                story.append(logo)
+                story.append(Spacer(1, 1*cm))
+            else:
+                story.append(Spacer(1, 10*cm))
+        else:
+            story.append(Spacer(1, 10*cm))
+        
         company_name = self.settings.company_name or "Dessert Catalog"
         story.append(Paragraph(company_name, 
             ParagraphStyle('T', fontName=self.fonts['serif_bold'], fontSize=40, alignment=TA_CENTER, textColor=Colors.DEEP_BLUE)))
@@ -525,7 +548,19 @@ class ClassicTemplate(PDFTemplate):
     
     def create_title_page(self, story: List) -> None:
         styles = self.create_styles()
-        story.append(Spacer(1, 9*cm))
+        
+        # Логотип компании (если есть)
+        if self.settings.logo_url:
+            logo = self._load_image(self.settings.logo_url, width=5*cm, height=5*cm)
+            if logo:
+                story.append(Spacer(1, 4*cm))
+                story.append(logo)
+                story.append(Spacer(1, 1*cm))
+            else:
+                story.append(Spacer(1, 9*cm))
+        else:
+            story.append(Spacer(1, 9*cm))
+        
         title_text = self.settings.company_name or "Dessert Catalog"
         story.append(Paragraph(title_text, styles['title']))
         story.append(Spacer(1, 2*cm))
