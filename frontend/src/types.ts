@@ -38,6 +38,7 @@ export interface User {
   email: string;
   is_active: boolean;
   is_admin: boolean;
+  is_moderator: boolean;
   logo_url?: string | null;
   company_name?: string | null;
   manager_contact?: string | null;

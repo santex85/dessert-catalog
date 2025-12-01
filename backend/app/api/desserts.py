@@ -5,7 +5,7 @@ from typing import List, Optional
 from app.database import get_db
 from app.models import Dessert, User
 from app.schemas import DessertCreate, DessertUpdate, DessertResponse
-from app.auth import get_current_admin_user
+from app.auth import get_current_admin_user, get_current_moderator_user
 from app.logger import log_activity, get_client_ip, get_user_agent
 
 router = APIRouter(prefix="/api/desserts", tags=["desserts"])
@@ -92,9 +92,9 @@ def create_dessert(
     dessert: DessertCreate,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_user)
+    current_user: User = Depends(get_current_moderator_user)
 ):
-    """Создать новый десерт (только для администраторов)"""
+    """Создать новый десерт (для модераторов и администраторов)"""
     db_dessert = Dessert(**dessert.model_dump())
     db.add(db_dessert)
     db.commit()
@@ -107,7 +107,7 @@ def create_dessert(
         user=current_user,
         entity_type="dessert",
         entity_id=db_dessert.id,
-        description=f"Admin {current_user.username} created dessert: {db_dessert.title}",
+        description=f"{'Admin' if current_user.is_admin else 'Moderator'} {current_user.username} created dessert: {db_dessert.title}",
         new_values={"title": db_dessert.title, "category": db_dessert.category},
         ip_address=get_client_ip(request),
         user_agent=get_user_agent(request),
@@ -122,9 +122,9 @@ def update_dessert(
     dessert: DessertUpdate,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_user)
+    current_user: User = Depends(get_current_moderator_user)
 ):
-    """Обновить десерт (только для администраторов)"""
+    """Обновить десерт (для модераторов и администраторов)"""
     db_dessert = db.query(Dessert).filter(Dessert.id == dessert_id).first()
     if not db_dessert:
         raise HTTPException(status_code=404, detail="Десерт не найден")
@@ -158,7 +158,7 @@ def update_dessert(
         user=current_user,
         entity_type="dessert",
         entity_id=db_dessert.id,
-        description=f"Admin {current_user.username} updated dessert: {db_dessert.title}",
+        description=f"{'Admin' if current_user.is_admin else 'Moderator'} {current_user.username} updated dessert: {db_dessert.title}",
         old_values=old_values,
         new_values=new_values,
         ip_address=get_client_ip(request),
@@ -173,9 +173,9 @@ def delete_dessert(
     dessert_id: int,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_user)
+    current_user: User = Depends(get_current_moderator_user)
 ):
-    """Удалить десерт (только для администраторов)"""
+    """Удалить десерт (для модераторов и администраторов)"""
     db_dessert = db.query(Dessert).filter(Dessert.id == dessert_id).first()
     if not db_dessert:
         raise HTTPException(status_code=404, detail="Десерт не найден")
@@ -197,7 +197,7 @@ def delete_dessert(
         user=current_user,
         entity_type="dessert",
         entity_id=dessert_id,
-        description=f"Admin {current_user.username} deleted dessert: {dessert_info['title']}",
+        description=f"{'Admin' if current_user.is_admin else 'Moderator'} {current_user.username} deleted dessert: {dessert_info['title']}",
         old_values=dessert_info,
         ip_address=get_client_ip(request),
         user_agent=get_user_agent(request),

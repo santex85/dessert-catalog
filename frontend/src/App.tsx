@@ -10,8 +10,8 @@ import { dessertsApi } from './services/api';
 import { useAuth } from './contexts/AuthContext';
 import { useToastContext } from './contexts/ToastContext';
 
-function ProtectedRoute({ children, requireAdmin = false }: { children: React.ReactNode; requireAdmin?: boolean }) {
-  const { isAuthenticated, isAdmin, loading } = useAuth();
+function ProtectedRoute({ children, requireAdmin = false, requireModerator = false }: { children: React.ReactNode; requireAdmin?: boolean; requireModerator?: boolean }) {
+  const { isAuthenticated, isAdmin, isModerator, loading } = useAuth();
 
   if (loading) {
     return (
@@ -29,6 +29,10 @@ function ProtectedRoute({ children, requireAdmin = false }: { children: React.Re
     return <Navigate to="/" replace />;
   }
 
+  if (requireModerator && !isModerator && !isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+
   return <>{children}</>;
 }
 
@@ -36,7 +40,7 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [desserts, setDesserts] = useState<Dessert[]>([]);
   const [loading, setLoading] = useState(true);
-  const { isAuthenticated, isAdmin: userIsAdmin, logout, user } = useAuth();
+  const { isAuthenticated, isAdmin: userIsAdmin, isModerator: userIsModerator, logout, user } = useAuth();
   const navigate = useNavigate();
 
   // Отладка
@@ -92,7 +96,7 @@ function App() {
                           className="text-sm text-blue-600 hover:text-blue-800 underline cursor-pointer font-medium"
                           style={{ display: 'inline-block', textDecoration: 'underline', color: '#2563eb' }}
                         >
-                          {user.username}{user.is_admin ? ' (Admin)' : ''}
+                          {user.username}{user.is_admin ? ' (Admin)' : user.is_moderator ? ' (Moderator)' : ''}
                         </a>
                         {userIsAdmin && (
                           <button
@@ -137,8 +141,8 @@ function App() {
             </header>
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-              {isAdmin ? (
-                <ProtectedRoute requireAdmin>
+              {(isAdmin || userIsModerator) ? (
+                <ProtectedRoute requireModerator>
                   <AdminPanel onUpdate={loadDesserts} />
                 </ProtectedRoute>
               ) : (
@@ -151,7 +155,7 @@ function App() {
       <Route
         path="/admin"
         element={
-          <ProtectedRoute requireAdmin>
+          <ProtectedRoute requireModerator>
             <div className="min-h-screen bg-gray-50">
               <header className="bg-white shadow-sm">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -168,7 +172,7 @@ function App() {
                           className="text-sm text-blue-600 hover:text-blue-800 underline cursor-pointer font-medium"
                           style={{ display: 'inline-block', textDecoration: 'underline', color: '#2563eb' }}
                         >
-                          {user.username}{user.is_admin ? ' (Admin)' : ''}
+                          {user.username}{user.is_admin ? ' (Admin)' : user.is_moderator ? ' (Moderator)' : ''}
                         </a>
                       )}
                       <button

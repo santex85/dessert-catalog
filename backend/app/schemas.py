@@ -76,6 +76,7 @@ class UserResponse(UserBase):
     id: int
     is_active: bool
     is_admin: bool
+    is_moderator: bool
     logo_url: Optional[str] = None
     company_name: Optional[str] = None
     manager_contact: Optional[str] = None
@@ -127,6 +128,7 @@ class UserUpdateRequest(BaseModel):
     email: Optional[EmailStr] = None
     is_active: Optional[bool] = None
     is_admin: Optional[bool] = None
+    is_moderator: Optional[bool] = None
     company_name: Optional[str] = Field(None, max_length=200)
     manager_contact: Optional[str] = Field(None, max_length=500)
     catalog_description: Optional[str] = None

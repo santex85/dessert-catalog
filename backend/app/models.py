@@ -35,6 +35,7 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False)
+    is_moderator = Column(Boolean, default=False)  # Модератор может редактировать только каталог
     logo_url = Column(String(500))  # URL логотипа компании
     company_name = Column(String(200))  # Название компании
     manager_contact = Column(String(500))  # Контакты менеджера

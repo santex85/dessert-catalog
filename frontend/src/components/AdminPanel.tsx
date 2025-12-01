@@ -3,6 +3,7 @@ import { Dessert, User, ActivityLog } from '../types';
 import { dessertsApi, uploadApi, usersApi, logsApi } from '../services/api';
 import { getImageUrl } from '../utils/image';
 import { useToastContext } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
 import ConfirmDialog from './ConfirmDialog';
 
 interface AdminPanelProps {
@@ -12,6 +13,8 @@ interface AdminPanelProps {
 type TabType = 'desserts' | 'users' | 'logs';
 
 export default function AdminPanel({ onUpdate }: AdminPanelProps) {
+  const { user } = useAuth();
+  const isAdmin = user?.is_admin || false;
   const [activeTab, setActiveTab] = useState<TabType>('desserts');
   const [desserts, setDesserts] = useState<Dessert[]>([]);
   const [loading, setLoading] = useState(true);
@@ -178,26 +181,30 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
           >
             Desserts
           </button>
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'users'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Users
-          </button>
-          <button
-            onClick={() => setActiveTab('logs')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'logs'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Activity Logs
-          </button>
+          {isAdmin && (
+            <>
+              <button
+                onClick={() => setActiveTab('users')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'users'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Users
+              </button>
+              <button
+                onClick={() => setActiveTab('logs')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'logs'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Activity Logs
+              </button>
+            </>
+          )}
         </nav>
       </div>
 
@@ -873,10 +880,12 @@ function UsersManagement() {
                     className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                       user.is_admin
                         ? 'bg-purple-100 text-purple-800'
+                        : user.is_moderator
+                        ? 'bg-blue-100 text-blue-800'
                         : 'bg-gray-100 text-gray-800'
                     }`}
                   >
-                    {user.is_admin ? 'Admin' : 'User'}
+                    {user.is_admin ? 'Admin' : user.is_moderator ? 'Moderator' : 'User'}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -914,6 +923,7 @@ function UserEditForm({ user, onClose, onSave }: UserEditFormProps) {
     email: user.email,
     is_active: user.is_active,
     is_admin: user.is_admin,
+    is_moderator: user.is_moderator,
     company_name: user.company_name || '',
     manager_contact: user.manager_contact || '',
     catalog_description: user.catalog_description || '',
@@ -1000,6 +1010,16 @@ function UserEditForm({ user, onClose, onSave }: UserEditFormProps) {
               className="mr-2 w-4 h-4 text-blue-600"
             />
             <span className="text-sm text-gray-700">Admin</span>
+          </div>
+
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              checked={formData.is_moderator}
+              onChange={(e) => setFormData({ ...formData, is_moderator: e.target.checked })}
+              className="mr-2 w-4 h-4 text-blue-600"
+            />
+            <span className="text-sm text-gray-700">Moderator</span>
           </div>
 
           <div className="flex gap-3 pt-4">

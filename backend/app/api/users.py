@@ -44,6 +44,7 @@ def get_users(
             email=u.email,
             is_active=u.is_active,
             is_admin=u.is_admin,
+            is_moderator=u.is_moderator,
             logo_url=u.logo_url,
             company_name=u.company_name,
             manager_contact=u.manager_contact,
@@ -74,6 +75,7 @@ def get_user(
         email=user.email,
         is_active=user.is_active,
         is_admin=user.is_admin,
+        is_moderator=user.is_moderator,
         logo_url=user.logo_url,
         company_name=user.company_name,
         manager_contact=user.manager_contact,
@@ -103,6 +105,7 @@ def update_user(
         "email": user.email,
         "is_active": user.is_active,
         "is_admin": user.is_admin,
+        "is_moderator": user.is_moderator,
         "company_name": user.company_name,
         "manager_contact": user.manager_contact,
         "catalog_description": user.catalog_description,
@@ -134,6 +137,9 @@ def update_user(
             )
         user.is_admin = user_data.is_admin
     
+    if user_data.is_moderator is not None:
+        user.is_moderator = user_data.is_moderator
+    
     if user_data.company_name is not None:
         user.company_name = user_data.company_name
     
@@ -151,6 +157,7 @@ def update_user(
         "email": user.email,
         "is_active": user.is_active,
         "is_admin": user.is_admin,
+        "is_moderator": user.is_moderator,
         "company_name": user.company_name,
         "manager_contact": user.manager_contact,
         "catalog_description": user.catalog_description,
@@ -175,6 +182,7 @@ def update_user(
         email=user.email,
         is_active=user.is_active,
         is_admin=user.is_admin,
+        is_moderator=user.is_moderator,
         logo_url=user.logo_url,
         company_name=user.company_name,
         manager_contact=user.manager_contact,

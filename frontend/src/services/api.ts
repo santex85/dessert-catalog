@@ -184,6 +184,7 @@ export const usersApi = {
     email?: string;
     is_active?: boolean;
     is_admin?: boolean;
+    is_moderator?: boolean;
     company_name?: string;
     manager_contact?: string;
     catalog_description?: string;
