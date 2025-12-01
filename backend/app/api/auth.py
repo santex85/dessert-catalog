@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -23,12 +23,13 @@ from app.schemas import (
     UpdateCompanyProfileRequest
 )
 from app.auth import verify_password
+from app.logger import log_activity, get_client_ip, get_user_agent
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=UserResponse, status_code=201)
-def register(user_data: UserCreate, db: Session = Depends(get_db)):
+def register(user_data: UserCreate, request: Request, db: Session = Depends(get_db)):
     """Регистрация нового пользователя"""
     # Проверка существования username
     if get_user_by_username(db, user_data.username):
@@ -55,6 +56,19 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
+    
+    # Логируем регистрацию
+    log_activity(
+        db=db,
+        action="user_register",
+        user=db_user,
+        entity_type="user",
+        entity_id=db_user.id,
+        description=f"New user registered: {db_user.username}",
+        new_values={"username": db_user.username, "email": db_user.email},
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
+    )
     
     return db_user
 
@@ -93,10 +107,19 @@ def login(
 
 
 @router.post("/login-json", response_model=Token)
-def login_json(credentials: UserLogin, db: Session = Depends(get_db)):
+def login_json(credentials: UserLogin, request: Request, db: Session = Depends(get_db)):
     """Вход пользователя через JSON (альтернатива OAuth2)"""
     user = authenticate_user(db, credentials.username, credentials.password)
     if not user:
+        # Логируем неудачную попытку входа
+        log_activity(
+            db=db,
+            action="login_failed",
+            user=None,
+            description=f"Failed login attempt for username: {credentials.username}",
+            ip_address=get_client_ip(request),
+            user_agent=get_user_agent(request),
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -104,6 +127,17 @@ def login_json(credentials: UserLogin, db: Session = Depends(get_db)):
         )
     
     access_token = create_access_token(data={"sub": user.username})
+    
+    # Логируем успешный вход
+    log_activity(
+        db=db,
+        action="login",
+        user=user,
+        description=f"User {user.username} logged in",
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
+    )
+    
     return Token(
         access_token=access_token,
         token_type="bearer",
@@ -137,6 +171,7 @@ def check_admin_access(current_user: User = Depends(get_current_admin_user)):
 @router.put("/profile/email", response_model=ProfileUpdateResponse)
 def update_email(
     email_data: UpdateEmailRequest,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -149,10 +184,26 @@ def update_email(
             detail="User with this email already exists"
         )
     
+    old_email = current_user.email
+    
     # Обновление email
     current_user.email = email_data.email
     db.commit()
     db.refresh(current_user)
+    
+    # Логируем изменение
+    log_activity(
+        db=db,
+        action="profile_update",
+        user=current_user,
+        entity_type="user",
+        entity_id=current_user.id,
+        description=f"User {current_user.username} updated email",
+        old_values={"email": old_email},
+        new_values={"email": current_user.email},
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
+    )
     
     return ProfileUpdateResponse(
         message="Email updated successfully",
@@ -174,6 +225,7 @@ def update_email(
 @router.put("/profile/password", response_model=ProfileUpdateResponse)
 def update_password(
     password_data: UpdatePasswordRequest,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -197,6 +249,18 @@ def update_password(
     db.commit()
     db.refresh(current_user)
     
+    # Логируем изменение пароля
+    log_activity(
+        db=db,
+        action="password_change",
+        user=current_user,
+        entity_type="user",
+        entity_id=current_user.id,
+        description=f"User {current_user.username} changed password",
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
+    )
+    
     return ProfileUpdateResponse(
         message="Password updated successfully",
         user=UserResponse(
@@ -217,10 +281,19 @@ def update_password(
 @router.put("/profile/company", response_model=ProfileUpdateResponse)
 def update_company_profile(
     profile_data: UpdateCompanyProfileRequest,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Обновить профиль компании (логотип, название, контакты, описание)"""
+    # Сохраняем старые значения для лога
+    old_values = {
+        "logo_url": current_user.logo_url,
+        "company_name": current_user.company_name,
+        "manager_contact": current_user.manager_contact,
+        "catalog_description": current_user.catalog_description,
+    }
+    
     # Обновление полей профиля компании
     if profile_data.logo_url is not None:
         current_user.logo_url = profile_data.logo_url
@@ -233,6 +306,27 @@ def update_company_profile(
     
     db.commit()
     db.refresh(current_user)
+    
+    # Логируем изменение
+    new_values = {
+        "logo_url": current_user.logo_url,
+        "company_name": current_user.company_name,
+        "manager_contact": current_user.manager_contact,
+        "catalog_description": current_user.catalog_description,
+    }
+    
+    log_activity(
+        db=db,
+        action="profile_update",
+        user=current_user,
+        entity_type="user",
+        entity_id=current_user.id,
+        description=f"User {current_user.username} updated company profile",
+        old_values=old_values,
+        new_values=new_values,
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
+    )
     
     return ProfileUpdateResponse(
         message="Company profile updated successfully",

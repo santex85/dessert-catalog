@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from typing import List, Optional
@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models import Dessert, User
 from app.schemas import DessertCreate, DessertUpdate, DessertResponse
 from app.auth import get_current_admin_user
+from app.logger import log_activity, get_client_ip, get_user_agent
 
 router = APIRouter(prefix="/api/desserts", tags=["desserts"])
 
@@ -89,6 +90,7 @@ def get_dessert(dessert_id: int, db: Session = Depends(get_db)):
 @router.post("/", response_model=DessertResponse, status_code=201)
 def create_dessert(
     dessert: DessertCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user)
 ):
@@ -97,6 +99,20 @@ def create_dessert(
     db.add(db_dessert)
     db.commit()
     db.refresh(db_dessert)
+    
+    # Логируем создание
+    log_activity(
+        db=db,
+        action="dessert_create",
+        user=current_user,
+        entity_type="dessert",
+        entity_id=db_dessert.id,
+        description=f"Admin {current_user.username} created dessert: {db_dessert.title}",
+        new_values={"title": db_dessert.title, "category": db_dessert.category},
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
+    )
+    
     return db_dessert
 
 
@@ -104,6 +120,7 @@ def create_dessert(
 def update_dessert(
     dessert_id: int,
     dessert: DessertUpdate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user)
 ):
@@ -112,18 +129,49 @@ def update_dessert(
     if not db_dessert:
         raise HTTPException(status_code=404, detail="Десерт не найден")
 
+    # Сохраняем старые значения для лога
+    old_values = {
+        "title": db_dessert.title,
+        "category": db_dessert.category,
+        "is_active": db_dessert.is_active,
+        "price": db_dessert.price,
+    }
+
     update_data = dessert.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_dessert, field, value)
 
     db.commit()
     db.refresh(db_dessert)
+    
+    # Логируем обновление
+    new_values = {
+        "title": db_dessert.title,
+        "category": db_dessert.category,
+        "is_active": db_dessert.is_active,
+        "price": db_dessert.price,
+    }
+    
+    log_activity(
+        db=db,
+        action="dessert_update",
+        user=current_user,
+        entity_type="dessert",
+        entity_id=db_dessert.id,
+        description=f"Admin {current_user.username} updated dessert: {db_dessert.title}",
+        old_values=old_values,
+        new_values=new_values,
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
+    )
+    
     return db_dessert
 
 
 @router.delete("/{dessert_id}", status_code=204)
 def delete_dessert(
     dessert_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user)
 ):
@@ -132,7 +180,28 @@ def delete_dessert(
     if not db_dessert:
         raise HTTPException(status_code=404, detail="Десерт не найден")
 
+    # Сохраняем информацию для лога перед удалением
+    dessert_info = {
+        "id": db_dessert.id,
+        "title": db_dessert.title,
+        "category": db_dessert.category,
+    }
+
     db.delete(db_dessert)
     db.commit()
+    
+    # Логируем удаление
+    log_activity(
+        db=db,
+        action="dessert_delete",
+        user=current_user,
+        entity_type="dessert",
+        entity_id=dessert_id,
+        description=f"Admin {current_user.username} deleted dessert: {dessert_info['title']}",
+        old_values=dessert_info,
+        ip_address=get_client_ip(request),
+        user_agent=get_user_agent(request),
+    )
+    
     return None
 

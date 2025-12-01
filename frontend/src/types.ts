@@ -61,3 +61,33 @@ export interface AuthResponse {
   token_type: string;
   user: User;
 }
+
+export interface ActivityLog {
+  id: number;
+  user_id?: number | null;
+  username?: string | null;
+  action: string;
+  entity_type?: string | null;
+  entity_id?: number | null;
+  description?: string | null;
+  old_values?: string | null;
+  new_values?: string | null;
+  ip_address?: string | null;
+  user_agent?: string | null;
+  created_at: string;
+}
+
+export interface ActivityLogListResponse {
+  logs: ActivityLog[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface LogsSummary {
+  period_days: number;
+  total_logs: number;
+  actions: Record<string, number>;
+  entities: Record<string, number>;
+  top_users: Array<{ username: string; count: number }>;
+}

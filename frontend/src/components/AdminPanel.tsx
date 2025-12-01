@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Dessert } from '../types';
-import { dessertsApi, uploadApi } from '../services/api';
+import { Dessert, User, ActivityLog } from '../types';
+import { dessertsApi, uploadApi, usersApi, logsApi } from '../services/api';
 import { getImageUrl } from '../utils/image';
 import { useToastContext } from '../contexts/ToastContext';
 import ConfirmDialog from './ConfirmDialog';
@@ -9,12 +9,15 @@ interface AdminPanelProps {
   onUpdate: () => void;
 }
 
+type TabType = 'desserts' | 'users' | 'logs';
+
 export default function AdminPanel({ onUpdate }: AdminPanelProps) {
+  const [activeTab, setActiveTab] = useState<TabType>('desserts');
   const [desserts, setDesserts] = useState<Dessert[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingDessert, setEditingDessert] = useState<Dessert | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ id: number } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: number; type: 'dessert' | 'user' } | null>(null);
   const [editingPriceId, setEditingPriceId] = useState<number | null>(null);
   const [editingPriceValue, setEditingPriceValue] = useState<string>('');
   const [savingPrice, setSavingPrice] = useState(false);
@@ -36,7 +39,7 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
     }
   };
 
-  const handleDelete = (e: React.MouseEvent<HTMLButtonElement>, id: number) => {
+  const handleDelete = (e: React.MouseEvent<HTMLButtonElement>, id: number, type: 'dessert' | 'user' = 'dessert') => {
     e.preventDefault();
     e.stopPropagation();
     e.nativeEvent.stopImmediatePropagation();
@@ -46,7 +49,7 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
       e.nativeEvent.preventDefault();
     }
     
-    setDeleteConfirm({ id });
+    setDeleteConfirm({ id, type });
     return false;
   };
 
@@ -58,16 +61,23 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
     if (!deleteConfirm) return;
     
     const idToDelete = deleteConfirm.id;
+    const deleteType = deleteConfirm.type;
     setDeleteConfirm(null); // Закрываем диалог сразу
     
     try {
-      await dessertsApi.delete(idToDelete);
-      await loadDesserts();
-      onUpdate();
-      success('Dessert deleted successfully');
+      if (deleteType === 'dessert') {
+        await dessertsApi.delete(idToDelete);
+        await loadDesserts();
+        onUpdate();
+        success('Dessert deleted successfully');
+      } else if (deleteType === 'user') {
+        await usersApi.delete(idToDelete);
+        await loadUsers();
+        success('User deleted successfully');
+      }
     } catch (err) {
       console.error('Error deleting:', err);
-      error('Error deleting dessert');
+      error(`Error deleting ${deleteType}`);
     }
   };
 
@@ -127,7 +137,7 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
     }
   };
 
-  if (loading) {
+  if (loading && activeTab === 'desserts') {
     return <div className="text-center py-12">Loading...</div>;
   }
 
@@ -135,8 +145,8 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
     <div>
       {deleteConfirm && (
         <ConfirmDialog
-          title="Delete Dessert"
-          message="Are you sure you want to delete this dessert? This action cannot be undone."
+          title={deleteConfirm.type === 'dessert' ? 'Delete Dessert' : 'Delete User'}
+          message={`Are you sure you want to delete this ${deleteConfirm.type}? This action cannot be undone.`}
           confirmText="Delete"
           cancelText="Cancel"
           type="danger"
@@ -153,15 +163,54 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
         />
       )}
 
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Dessert Management</h2>
-        <button
-          onClick={handleCreate}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-        >
-          + Add Dessert
-        </button>
+      {/* Tabs */}
+      <div className="border-b border-gray-200 mb-6">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('desserts')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'desserts'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Desserts
+          </button>
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'users'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Users
+          </button>
+          <button
+            onClick={() => setActiveTab('logs')}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'logs'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Activity Logs
+          </button>
+        </nav>
       </div>
+
+      {/* Desserts Tab */}
+      {activeTab === 'desserts' && (
+        <>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">Dessert Management</h2>
+            <button
+              onClick={handleCreate}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              + Add Dessert
+            </button>
+          </div>
 
       {showForm && (
         <DessertForm
@@ -286,7 +335,7 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
                   </button>
                   <button
                     type="button"
-                    onClick={(e) => handleDelete(e, dessert.id)}
+                    onClick={(e) => handleDelete(e, dessert.id, 'dessert')}
                     className="text-red-600 hover:text-red-900"
                   >
                     Delete
@@ -297,6 +346,14 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
           </tbody>
         </table>
       </div>
+        </>
+      )}
+
+      {/* Users Tab */}
+      {activeTab === 'users' && <UsersManagement />}
+
+      {/* Logs Tab */}
+      {activeTab === 'logs' && <ActivityLogsView />}
     </div>
   );
 }
@@ -678,6 +735,502 @@ function DessertForm({ dessert, onClose, onSave }: DessertFormProps) {
           </div>
         </form>
       </div>
+    </div>
+  );
+}
+
+// Компонент управления пользователями
+function UsersManagement() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const { error, success } = useToastContext();
+
+  useEffect(() => {
+    loadUsers();
+  }, [search]);
+
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      const data = await usersApi.getAll({ search: search || undefined, limit: 100 });
+      setUsers(data.users);
+    } catch (err) {
+      console.error('Error loading users:', err);
+      error('Error loading users');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEdit = (user: User) => {
+    setEditingUser(user);
+    setShowEditForm(true);
+  };
+
+  const handleSave = async (userData: Partial<User>) => {
+    if (!editingUser) return;
+    
+    try {
+      await usersApi.update(editingUser.id, userData);
+      await loadUsers();
+      setShowEditForm(false);
+      setEditingUser(null);
+      success('User updated successfully');
+    } catch (err) {
+      console.error('Error updating user:', err);
+      error('Error updating user');
+    }
+  };
+
+  if (loading) {
+    return <div className="text-center py-12">Loading...</div>;
+  }
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Search users..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+
+      {showEditForm && editingUser && (
+        <UserEditForm
+          user={editingUser}
+          onClose={() => {
+            setShowEditForm(false);
+            setEditingUser(null);
+          }}
+          onSave={handleSave}
+        />
+      )}
+
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Username
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Email
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Company
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Role
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Created
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {users.map((user) => (
+              <tr key={user.id}>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-gray-900">{user.username}</div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-500">{user.email}</div>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="text-sm text-gray-500">{user.company_name || '-'}</div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span
+                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      user.is_active
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}
+                  >
+                    {user.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span
+                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      user.is_admin
+                        ? 'bg-purple-100 text-purple-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}
+                  >
+                    {user.is_admin ? 'Admin' : 'User'}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {user.created_at ? new Date(user.created_at).toLocaleDateString() : '-'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <button
+                    type="button"
+                    onClick={() => handleEdit(user)}
+                    className="text-blue-600 hover:text-blue-900 mr-4"
+                  >
+                    Edit
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {users.length === 0 && (
+          <div className="text-center py-8 text-gray-500">No users found</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface UserEditFormProps {
+  user: User;
+  onClose: () => void;
+  onSave: (data: Partial<User>) => void;
+}
+
+function UserEditForm({ user, onClose, onSave }: UserEditFormProps) {
+  const [formData, setFormData] = useState({
+    email: user.email,
+    is_active: user.is_active,
+    is_admin: user.is_admin,
+    company_name: user.company_name || '',
+    manager_contact: user.manager_contact || '',
+    catalog_description: user.catalog_description || '',
+  });
+  const [saving, setSaving] = useState(false);
+  const { error } = useToastContext();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+
+    try {
+      await onSave(formData);
+    } catch (err) {
+      console.error('Error saving:', err);
+      error('Error saving user');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+        <h3 className="text-xl font-bold text-gray-900 mb-4">Edit User: {user.username}</h3>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+            <input
+              type="email"
+              required
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+            <input
+              type="text"
+              value={formData.company_name}
+              onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Manager Contact</label>
+            <textarea
+              value={formData.manager_contact}
+              onChange={(e) => setFormData({ ...formData, manager_contact: e.target.value })}
+              rows={2}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Catalog Description</label>
+            <textarea
+              value={formData.catalog_description}
+              onChange={(e) => setFormData({ ...formData, catalog_description: e.target.value })}
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              checked={formData.is_active}
+              onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+              className="mr-2 w-4 h-4 text-blue-600"
+            />
+            <span className="text-sm text-gray-700">Active</span>
+          </div>
+
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              checked={formData.is_admin}
+              onChange={(e) => setFormData({ ...formData, is_admin: e.target.checked })}
+              className="mr-2 w-4 h-4 text-blue-600"
+            />
+            <span className="text-sm text-gray-700">Admin</span>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// Компонент просмотра логов активности
+function ActivityLogsView() {
+  const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [pageSize] = useState(50);
+  const [filters, setFilters] = useState({
+    action: '',
+    entity_type: '',
+    username: '',
+    search: '',
+    days: 7,
+  });
+  const { error } = useToastContext();
+
+  useEffect(() => {
+    loadLogs();
+  }, [page, filters]);
+
+  const loadLogs = async () => {
+    try {
+      setLoading(true);
+      const params: any = {
+        skip: (page - 1) * pageSize,
+        limit: pageSize,
+      };
+      if (filters.action) params.action = filters.action;
+      if (filters.entity_type) params.entity_type = filters.entity_type;
+      if (filters.username) params.username = filters.username;
+      if (filters.search) params.search = filters.search;
+      if (filters.days) params.days = filters.days;
+
+      const data = await logsApi.getAll(params);
+      setLogs(data.logs);
+      setTotal(data.total);
+    } catch (err) {
+      console.error('Error loading logs:', err);
+      error('Error loading logs');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getActionColor = (action: string) => {
+    if (action.includes('create')) return 'bg-green-100 text-green-800';
+    if (action.includes('update')) return 'bg-blue-100 text-blue-800';
+    if (action.includes('delete')) return 'bg-red-100 text-red-800';
+    if (action.includes('login')) return 'bg-purple-100 text-purple-800';
+    return 'bg-gray-100 text-gray-800';
+  };
+
+  if (loading && logs.length === 0) {
+    return <div className="text-center py-12">Loading...</div>;
+  }
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">Activity Logs</h2>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white rounded-lg shadow p-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Action</label>
+            <input
+              type="text"
+              placeholder="Filter by action..."
+              value={filters.action}
+              onChange={(e) => setFilters({ ...filters, action: e.target.value })}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Entity Type</label>
+            <input
+              type="text"
+              placeholder="Filter by entity..."
+              value={filters.entity_type}
+              onChange={(e) => setFilters({ ...filters, entity_type: e.target.value })}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Username</label>
+            <input
+              type="text"
+              placeholder="Filter by user..."
+              value={filters.username}
+              onChange={(e) => setFilters({ ...filters, username: e.target.value })}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Search</label>
+            <input
+              type="text"
+              placeholder="Search in logs..."
+              value={filters.search}
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">Days</label>
+            <select
+              value={filters.days}
+              onChange={(e) => setFilters({ ...filters, days: parseInt(e.target.value) })}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value={1}>Last 24 hours</option>
+              <option value={7}>Last 7 days</option>
+              <option value={30}>Last 30 days</option>
+              <option value={90}>Last 90 days</option>
+              <option value={365}>Last year</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Logs Table */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <p className="text-sm text-gray-600">
+            Showing {logs.length} of {total} logs
+          </p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Time
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  User
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Action
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Entity
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Description
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  IP Address
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {logs.map((log) => (
+                <tr key={log.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(log.created_at).toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">{log.username || 'System'}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getActionColor(log.action)}`}>
+                      {log.action}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {log.entity_type ? `${log.entity_type}${log.entity_id ? ` #${log.entity_id}` : ''}` : '-'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500">
+                    <div className="max-w-md truncate" title={log.description || ''}>
+                      {log.description || '-'}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {log.ip_address || '-'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {logs.length === 0 && (
+          <div className="text-center py-8 text-gray-500">No logs found</div>
+        )}
+      </div>
+
+      {/* Pagination */}
+      {total > pageSize && (
+        <div className="mt-4 flex justify-between items-center">
+          <button
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            Previous
+          </button>
+          <span className="text-sm text-gray-600">
+            Page {page} of {Math.ceil(total / pageSize)}
+          </span>
+          <button
+            onClick={() => setPage(p => Math.min(Math.ceil(total / pageSize), p + 1))}
+            disabled={page >= Math.ceil(total / pageSize)}
+            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }

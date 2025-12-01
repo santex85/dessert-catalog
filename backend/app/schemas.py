@@ -119,3 +119,48 @@ class UpdateCompanyProfileRequest(BaseModel):
     company_name: Optional[str] = Field(None, max_length=200, description="Название компании")
     manager_contact: Optional[str] = Field(None, max_length=500, description="Контакты менеджера")
     catalog_description: Optional[str] = Field(None, description="Описание каталога (философия компании)")
+
+
+# Схемы для управления пользователями (админка)
+class UserUpdateRequest(BaseModel):
+    """Запрос на обновление пользователя администратором"""
+    email: Optional[EmailStr] = None
+    is_active: Optional[bool] = None
+    is_admin: Optional[bool] = None
+    company_name: Optional[str] = Field(None, max_length=200)
+    manager_contact: Optional[str] = Field(None, max_length=500)
+    catalog_description: Optional[str] = None
+
+
+class UserListResponse(BaseModel):
+    """Список пользователей для админки"""
+    users: list[UserResponse]
+    total: int
+
+
+# Схемы для логов активности
+class ActivityLogResponse(BaseModel):
+    """Ответ с записью лога активности"""
+    id: int
+    user_id: Optional[int] = None
+    username: Optional[str] = None
+    action: str
+    entity_type: Optional[str] = None
+    entity_id: Optional[int] = None
+    description: Optional[str] = None
+    old_values: Optional[str] = None
+    new_values: Optional[str] = None
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ActivityLogListResponse(BaseModel):
+    """Список логов активности"""
+    logs: list[ActivityLogResponse]
+    total: int
+    page: int
+    page_size: int

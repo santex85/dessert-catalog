@@ -45,3 +45,24 @@ class User(Base):
     def __repr__(self):
         return f"<User {self.username}>"
 
+
+class ActivityLog(Base):
+    """Модель лога активности пользователей"""
+    __tablename__ = "activity_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=True, index=True)  # ID пользователя, который выполнил действие
+    username = Column(String(50), nullable=True, index=True)  # Имя пользователя для быстрого поиска
+    action = Column(String(100), nullable=False, index=True)  # Тип действия (create, update, delete, login, etc.)
+    entity_type = Column(String(50), nullable=True, index=True)  # Тип сущности (user, dessert, etc.)
+    entity_id = Column(Integer, nullable=True, index=True)  # ID измененной сущности
+    description = Column(Text, nullable=True)  # Описание действия
+    old_values = Column(Text, nullable=True)  # Старые значения (JSON строка)
+    new_values = Column(Text, nullable=True)  # Новые значения (JSON строка)
+    ip_address = Column(String(45), nullable=True)  # IP адрес
+    user_agent = Column(String(500), nullable=True)  # User agent браузера
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    def __repr__(self):
+        return f"<ActivityLog {self.action} by {self.username}>"
+

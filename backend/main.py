@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.database import engine, Base
-from app.api import desserts, pdf, upload, auth
+from app.api import desserts, pdf, upload, auth, users, logs
 from app.config import UPLOAD_DIR, IMAGES_URL_PREFIX
 from pathlib import Path
 import os
@@ -42,6 +42,8 @@ app.include_router(auth.router)
 app.include_router(desserts.router)
 app.include_router(pdf.router)
 app.include_router(upload.router)
+app.include_router(users.router)
+app.include_router(logs.router)
 
 
 @app.get("/")

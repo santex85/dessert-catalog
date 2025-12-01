@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Dessert, PDFExportSettings, LoginCredentials, RegisterData, AuthResponse, User } from '../types';
+import { Dessert, PDFExportSettings, LoginCredentials, RegisterData, AuthResponse, User, ActivityLog, ActivityLogListResponse, LogsSummary } from '../types';
 
 const API_BASE_URL = '/api';
 
@@ -161,6 +161,64 @@ export const authApi = {
     const response = await api.put<{ message: string; user: User }>('/auth/profile/company', data);
     // Обновляем сохраненного пользователя
     localStorage.setItem('user', JSON.stringify(response.data.user));
+    return response.data;
+  },
+};
+
+export const usersApi = {
+  getAll: async (params?: {
+    skip?: number;
+    limit?: number;
+    search?: string;
+  }): Promise<{ users: User[]; total: number }> => {
+    const response = await api.get<{ users: User[]; total: number }>('/users/', { params });
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<User> => {
+    const response = await api.get<User>(`/users/${id}`);
+    return response.data;
+  },
+
+  update: async (id: number, data: {
+    email?: string;
+    is_active?: boolean;
+    is_admin?: boolean;
+    company_name?: string;
+    manager_contact?: string;
+    catalog_description?: string;
+  }): Promise<User> => {
+    const response = await api.put<User>(`/users/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/users/${id}`);
+  },
+};
+
+export const logsApi = {
+  getAll: async (params?: {
+    skip?: number;
+    limit?: number;
+    action?: string;
+    entity_type?: string;
+    user_id?: number;
+    username?: string;
+    search?: string;
+    days?: number;
+  }): Promise<ActivityLogListResponse> => {
+    const response = await api.get<ActivityLogListResponse>('/logs/', { params });
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<ActivityLog> => {
+    const response = await api.get<ActivityLog>(`/logs/${id}`);
+    return response.data;
+  },
+
+  getSummary: async (days?: number): Promise<LogsSummary> => {
+    const response = await api.get<LogsSummary>('/logs/stats/summary', { params: { days } });
     return response.data;
   },
 };
