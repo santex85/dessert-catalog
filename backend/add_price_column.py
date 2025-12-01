@@ -50,3 +50,4 @@ def add_price_column():
 if __name__ == "__main__":
     add_price_column()
 
+

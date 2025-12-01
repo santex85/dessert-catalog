@@ -15,6 +15,9 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
   const [editingDessert, setEditingDessert] = useState<Dessert | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: number } | null>(null);
+  const [editingPriceId, setEditingPriceId] = useState<number | null>(null);
+  const [editingPriceValue, setEditingPriceValue] = useState<string>('');
+  const [savingPrice, setSavingPrice] = useState(false);
   const { error, success } = useToastContext();
 
   useEffect(() => {
@@ -76,6 +79,52 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
   const handleCreate = () => {
     setEditingDessert(null);
     setShowForm(true);
+  };
+
+  const handlePriceClick = (dessert: Dessert) => {
+    setEditingPriceId(dessert.id);
+    setEditingPriceValue(dessert.price?.toString() || '');
+  };
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditingPriceValue(e.target.value);
+  };
+
+  const handlePriceSave = async (dessertId: number) => {
+    try {
+      setSavingPrice(true);
+      const priceValue = editingPriceValue.trim() === '' ? null : parseFloat(editingPriceValue);
+      
+      if (priceValue !== null && (isNaN(priceValue) || priceValue < 0)) {
+        error('Please enter a valid price');
+        return;
+      }
+
+      await dessertsApi.update(dessertId, { price: priceValue });
+      await loadDesserts();
+      onUpdate();
+      success('Price updated successfully');
+      setEditingPriceId(null);
+      setEditingPriceValue('');
+    } catch (err) {
+      console.error('Error updating price:', err);
+      error('Error updating price');
+    } finally {
+      setSavingPrice(false);
+    }
+  };
+
+  const handlePriceCancel = () => {
+    setEditingPriceId(null);
+    setEditingPriceValue('');
+  };
+
+  const handlePriceKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, dessertId: number) => {
+    if (e.key === 'Enter') {
+      handlePriceSave(dessertId);
+    } else if (e.key === 'Escape') {
+      handlePriceCancel();
+    }
   };
 
   if (loading) {
@@ -143,6 +192,9 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
               </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Price (THB)
+              </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
@@ -173,6 +225,56 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
                   >
                     {dessert.is_active ? 'Active' : 'Inactive'}
                   </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {editingPriceId === dessert.id ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={editingPriceValue}
+                        onChange={handlePriceChange}
+                        onKeyDown={(e) => handlePriceKeyDown(e, dessert.id)}
+                        onBlur={() => handlePriceSave(dessert.id)}
+                        autoFocus
+                        className="w-24 px-2 py-1 text-sm border border-blue-500 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        disabled={savingPrice}
+                      />
+                      <button
+                        onClick={() => handlePriceSave(dessert.id)}
+                        disabled={savingPrice}
+                        className="text-green-600 hover:text-green-800 disabled:opacity-50"
+                        title="Save"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={handlePriceCancel}
+                        disabled={savingPrice}
+                        className="text-red-600 hover:text-red-800 disabled:opacity-50"
+                        title="Cancel"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => handlePriceClick(dessert)}
+                      className="cursor-pointer hover:bg-gray-50 px-2 py-1 rounded transition-colors group"
+                      title="Click to edit price"
+                    >
+                      <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600">
+                        {dessert.price !== null && dessert.price !== undefined
+                          ? `${dessert.price.toFixed(2)} THB`
+                          : <span className="text-gray-400 italic">Not set</span>}
+                      </span>
+                    </div>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <button
