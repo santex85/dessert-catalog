@@ -21,6 +21,7 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
   const [editingPriceId, setEditingPriceId] = useState<number | null>(null);
   const [editingPriceValue, setEditingPriceValue] = useState<string>('');
   const [savingPrice, setSavingPrice] = useState(false);
+  const [usersKey, setUsersKey] = useState(0); // Key для принудительного обновления UsersManagement
   const { error, success } = useToastContext();
 
   useEffect(() => {
@@ -72,7 +73,8 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
         success('Dessert deleted successfully');
       } else if (deleteType === 'user') {
         await usersApi.delete(idToDelete);
-        await loadUsers();
+        // Force UsersManagement to reload by changing its key
+        setUsersKey(prev => prev + 1);
         success('User deleted successfully');
       }
     } catch (err) {
@@ -350,7 +352,7 @@ export default function AdminPanel({ onUpdate }: AdminPanelProps) {
       )}
 
       {/* Users Tab */}
-      {activeTab === 'users' && <UsersManagement />}
+      {activeTab === 'users' && <UsersManagement key={usersKey} />}
 
       {/* Logs Tab */}
       {activeTab === 'logs' && <ActivityLogsView />}
@@ -748,10 +750,6 @@ function UsersManagement() {
   const [showEditForm, setShowEditForm] = useState(false);
   const { error, success } = useToastContext();
 
-  useEffect(() => {
-    loadUsers();
-  }, [search]);
-
   const loadUsers = async () => {
     try {
       setLoading(true);
@@ -764,6 +762,11 @@ function UsersManagement() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   const handleEdit = (user: User) => {
     setEditingUser(user);
@@ -1037,10 +1040,6 @@ function ActivityLogsView() {
   });
   const { error } = useToastContext();
 
-  useEffect(() => {
-    loadLogs();
-  }, [page, filters]);
-
   const loadLogs = async () => {
     try {
       setLoading(true);
@@ -1064,6 +1063,11 @@ function ActivityLogsView() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadLogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, filters]);
 
   const getActionColor = (action: string) => {
     if (action.includes('create')) return 'bg-green-100 text-green-800';
