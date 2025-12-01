@@ -18,6 +18,7 @@ from app.schemas import PDFExportSettings
 from app.config import UPLOAD_DIR, IMAGES_URL_PREFIX
 from pathlib import Path
 import os
+import re
 import requests
 from PIL import Image as PILImage
 from io import BytesIO
@@ -155,6 +156,97 @@ class PDFTemplate:
             print(f"Image load error: {e}")
             return None
     
+    def _format_catalog_description(self, text: str) -> List:
+        """
+        Форматирует описание каталога с сохранением типографики:
+        - Переносы строк
+        - Маркированные списки (•, -, *)
+        - Нумерованные списки (1., 2., и т.д.)
+        - Базовое форматирование (жирный, курсив через HTML теги)
+        
+        Возвращает список элементов для добавления в story
+        """
+        if not text:
+            return []
+        
+        elements = []
+        lines = text.split('\n')
+        in_list = False
+        list_type = None  # 'bullet' или 'number'
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                if in_list:
+                    in_list = False
+                    list_type = None
+                continue
+            
+            # Проверяем на маркированный список
+            if line.startswith('•') or line.startswith('-') or line.startswith('*'):
+                if not in_list or list_type != 'bullet':
+                    if in_list:
+                        elements.append(Spacer(1, 0.2*cm))
+                    in_list = True
+                    list_type = 'bullet'
+                # Убираем маркер и добавляем отступ
+                content = line[1:].strip()
+                # Экранируем HTML теги и добавляем отступ
+                content = content.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                elements.append(Paragraph(f"&nbsp;&nbsp;&nbsp;&nbsp;• {content}", 
+                    ParagraphStyle('ListBullet', fontName=self.fonts['main'], fontSize=10, 
+                    textColor=Colors.MID_GREY, alignment=TA_LEFT, leading=14, leftIndent=0.5*cm)))
+                continue
+            
+            # Проверяем на нумерованный список (1., 2., и т.д.)
+            numbered_match = re.match(r'^(\d+)\.\s+(.+)', line)
+            if numbered_match:
+                if not in_list or list_type != 'number':
+                    if in_list:
+                        elements.append(Spacer(1, 0.2*cm))
+                    in_list = True
+                    list_type = 'number'
+                number = numbered_match.group(1)
+                content = numbered_match.group(2).strip()
+                # Экранируем HTML теги
+                content = content.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                elements.append(Paragraph(f"&nbsp;&nbsp;&nbsp;&nbsp;{number}. {content}", 
+                    ParagraphStyle('ListNumber', fontName=self.fonts['main'], fontSize=10, 
+                    textColor=Colors.MID_GREY, alignment=TA_LEFT, leading=14, leftIndent=0.5*cm)))
+                continue
+            
+            # Обычный текст
+            if in_list:
+                in_list = False
+                list_type = None
+                elements.append(Spacer(1, 0.2*cm))
+            
+            # Обрабатываем HTML теги (ReportLab поддерживает <b>, <i>, <u>, <br/>)
+            # Заменяем <br> на <br/> для корректной обработки
+            formatted_line = line.replace('<br>', '<br/>').replace('<BR>', '<br/>')
+            # Экранируем & только если это не часть HTML тега или сущности
+            # Используем регулярное выражение для экранирования & вне HTML тегов
+            # Сначала защищаем HTML теги
+            html_tags_pattern = r'<[^>]+>'
+            html_tags = re.findall(html_tags_pattern, formatted_line)
+            # Временно заменяем HTML теги на плейсхолдеры
+            placeholders = {}
+            for i, tag in enumerate(html_tags):
+                placeholder = f'__HTML_TAG_{i}__'
+                placeholders[placeholder] = tag
+                formatted_line = formatted_line.replace(tag, placeholder, 1)
+            # Экранируем оставшиеся &
+            formatted_line = formatted_line.replace('&', '&amp;')
+            # Восстанавливаем HTML теги
+            for placeholder, tag in placeholders.items():
+                formatted_line = formatted_line.replace(placeholder, tag)
+            
+            elements.append(Paragraph(formatted_line, 
+                ParagraphStyle('CatalogDesc', fontName=self.fonts['main'], fontSize=10, 
+                textColor=Colors.MID_GREY, alignment=TA_LEFT, leading=14)))
+        
+        return elements
+    
     def get_nutrition_table(self, dessert: Dessert, styles: Dict, text_color=Colors.MID_GREY) -> Table:
         """Создает стильную горизонтальную таблицу КБЖУ"""
         if not self.settings.include_nutrition:
@@ -237,8 +329,28 @@ class MinimalTemplate(PDFTemplate):
         # Описание каталога (если есть)
         if self.settings.catalog_description:
             story.append(Spacer(1, 1*cm))
-            desc_style = ParagraphStyle('CatalogDesc', fontName=self.fonts['main'], fontSize=10, textColor=Colors.MID_GREY, alignment=TA_CENTER, leading=16, leftIndent=2*cm, rightIndent=2*cm)
-            story.append(Paragraph(self.settings.catalog_description, desc_style))
+            desc_elements = self._format_catalog_description(self.settings.catalog_description)
+            # Обновляем стили для Minimal шаблона
+            for elem in desc_elements:
+                if isinstance(elem, Paragraph) and hasattr(elem, 'style'):
+                    if 'ListBullet' in str(elem.style.name) or 'ListNumber' in str(elem.style.name):
+                        elem.style.fontName = self.fonts['main']
+                        elem.style.fontSize = 10
+                        elem.style.textColor = Colors.MID_GREY
+                    elif 'CatalogDesc' in str(elem.style.name):
+                        elem.style.fontName = self.fonts['main']
+                        elem.style.fontSize = 10
+                        elem.style.textColor = Colors.MID_GREY
+                        elem.style.alignment = TA_CENTER
+            # Обертываем в таблицу для центрирования с отступами
+            if desc_elements:
+                desc_table = Table([[desc_elements]], colWidths=[14*cm])
+                desc_table.setStyle(TableStyle([
+                    ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                    ('LEFTPADDING', (0,0), (-1,-1), 2*cm),
+                    ('RIGHTPADDING', (0,0), (-1,-1), 2*cm),
+                ]))
+                story.append(desc_table)
         
         story.append(PageBreak())
     
@@ -325,8 +437,29 @@ class ModernTemplate(PDFTemplate):
         # Описание каталога (если есть)
         if self.settings.catalog_description:
             story.append(Spacer(1, 1.5*cm))
-            desc_style = ParagraphStyle('CatalogDesc', fontName=self.fonts['serif'], fontSize=12, textColor=Colors.MID_GREY, alignment=TA_CENTER, leading=18, leftIndent=2*cm, rightIndent=2*cm)
-            story.append(Paragraph(self.settings.catalog_description, desc_style))
+            desc_elements = self._format_catalog_description(self.settings.catalog_description)
+            # Обновляем стили для Modern шаблона
+            for elem in desc_elements:
+                if isinstance(elem, Paragraph) and hasattr(elem, 'style'):
+                    # Обновляем стиль для соответствия шаблону
+                    if 'ListBullet' in str(elem.style.name) or 'ListNumber' in str(elem.style.name):
+                        elem.style.fontName = self.fonts['serif']
+                        elem.style.fontSize = 11
+                        elem.style.textColor = Colors.MID_GREY
+                    elif 'CatalogDesc' in str(elem.style.name):
+                        elem.style.fontName = self.fonts['serif']
+                        elem.style.fontSize = 12
+                        elem.style.textColor = Colors.MID_GREY
+                        elem.style.alignment = TA_CENTER
+            # Обертываем в таблицу для центрирования с отступами
+            if desc_elements:
+                desc_table = Table([[desc_elements]], colWidths=[14*cm])
+                desc_table.setStyle(TableStyle([
+                    ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                    ('LEFTPADDING', (0,0), (-1,-1), 2*cm),
+                    ('RIGHTPADDING', (0,0), (-1,-1), 2*cm),
+                ]))
+                story.append(desc_table)
         
         story.append(PageBreak())
     
@@ -438,8 +571,28 @@ class LuxuryTemplate(PDFTemplate):
         # Описание каталога (если есть)
         if self.settings.catalog_description:
             story.append(Spacer(1, 1*cm))
-            desc_style = ParagraphStyle('CatalogDesc', fontName=self.fonts['serif'], fontSize=11, textColor=Colors.MID_GREY, alignment=TA_CENTER, leading=16, leftIndent=2*cm, rightIndent=2*cm)
-            story.append(Paragraph(self.settings.catalog_description, desc_style))
+            desc_elements = self._format_catalog_description(self.settings.catalog_description)
+            # Обновляем стили для Luxury шаблона
+            for elem in desc_elements:
+                if isinstance(elem, Paragraph) and hasattr(elem, 'style'):
+                    if 'ListBullet' in str(elem.style.name) or 'ListNumber' in str(elem.style.name):
+                        elem.style.fontName = self.fonts['serif']
+                        elem.style.fontSize = 10
+                        elem.style.textColor = Colors.MID_GREY
+                    elif 'CatalogDesc' in str(elem.style.name):
+                        elem.style.fontName = self.fonts['serif']
+                        elem.style.fontSize = 11
+                        elem.style.textColor = Colors.MID_GREY
+                        elem.style.alignment = TA_CENTER
+            # Обертываем в таблицу для центрирования с отступами
+            if desc_elements:
+                desc_table = Table([[desc_elements]], colWidths=[14*cm])
+                desc_table.setStyle(TableStyle([
+                    ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                    ('LEFTPADDING', (0,0), (-1,-1), 2*cm),
+                    ('RIGHTPADDING', (0,0), (-1,-1), 2*cm),
+                ]))
+                story.append(desc_table)
         
         story.append(PageBreak())
     
@@ -592,8 +745,28 @@ class ClassicTemplate(PDFTemplate):
         # Описание каталога (если есть)
         if self.settings.catalog_description:
             story.append(Spacer(1, 1.5*cm))
-            desc_style = ParagraphStyle('CatalogDesc', parent=styles['normal'], fontSize=11, alignment=TA_CENTER, leading=16, leftIndent=2*cm, rightIndent=2*cm)
-            story.append(Paragraph(self.settings.catalog_description, desc_style))
+            desc_elements = self._format_catalog_description(self.settings.catalog_description)
+            # Обновляем стили для Classic шаблона
+            for elem in desc_elements:
+                if isinstance(elem, Paragraph) and hasattr(elem, 'style'):
+                    if 'ListBullet' in str(elem.style.name) or 'ListNumber' in str(elem.style.name):
+                        elem.style.fontName = self.fonts['main']
+                        elem.style.fontSize = 10
+                        elem.style.textColor = colors.HexColor('#34495e')
+                    elif 'CatalogDesc' in str(elem.style.name):
+                        elem.style.fontName = self.fonts['main']
+                        elem.style.fontSize = 11
+                        elem.style.textColor = colors.HexColor('#34495e')
+                        elem.style.alignment = TA_CENTER
+            # Обертываем в таблицу для центрирования с отступами
+            if desc_elements:
+                desc_table = Table([[desc_elements]], colWidths=[14*cm])
+                desc_table.setStyle(TableStyle([
+                    ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                    ('LEFTPADDING', (0,0), (-1,-1), 2*cm),
+                    ('RIGHTPADDING', (0,0), (-1,-1), 2*cm),
+                ]))
+                story.append(desc_table)
         
         story.append(PageBreak())
     
