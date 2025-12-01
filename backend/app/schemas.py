@@ -53,6 +53,7 @@ class PDFExportSettings(BaseModel):
     company_name: Optional[str] = Field(None, description="Название компании")
     manager_contact: Optional[str] = Field(None, description="Контакты менеджера")
     logo_url: Optional[str] = Field(None, description="URL логотипа компании")
+    catalog_description: Optional[str] = Field(None, description="Описание каталога (философия компании)")
     template: str = Field('minimal', description="Шаблон дизайна: minimal, classic, modern, luxury")
 
 
@@ -78,6 +79,7 @@ class UserResponse(UserBase):
     logo_url: Optional[str] = None
     company_name: Optional[str] = None
     manager_contact: Optional[str] = None
+    catalog_description: Optional[str] = None
     created_at: Optional[datetime] = None
 
     class Config:
@@ -116,3 +118,4 @@ class UpdateCompanyProfileRequest(BaseModel):
     logo_url: Optional[str] = Field(None, description="URL логотипа компании")
     company_name: Optional[str] = Field(None, max_length=200, description="Название компании")
     manager_contact: Optional[str] = Field(None, max_length=500, description="Контакты менеджера")
+    catalog_description: Optional[str] = Field(None, description="Описание каталога (философия компании)")

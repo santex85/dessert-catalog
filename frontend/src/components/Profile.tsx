@@ -23,6 +23,7 @@ export default function Profile() {
   const [logoUrl, setLogoUrl] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [managerContact, setManagerContact] = useState('');
+  const [catalogDescription, setCatalogDescription] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -30,6 +31,7 @@ export default function Profile() {
       setLogoUrl(user.logo_url || '');
       setCompanyName(user.company_name || '');
       setManagerContact(user.manager_contact || '');
+      setCatalogDescription(user.catalog_description || '');
     }
   }, [user]);
 
@@ -107,6 +109,7 @@ export default function Profile() {
         logo_url: logoUrl || undefined,
         company_name: companyName || undefined,
         manager_contact: managerContact || undefined,
+        catalog_description: catalogDescription || undefined,
       });
       success('Company profile updated successfully');
       await refreshUser();
@@ -362,6 +365,23 @@ export default function Profile() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Phone, email, etc."
               />
+            </div>
+
+            <div>
+              <label htmlFor="catalogDescription" className="block text-sm font-medium text-gray-700 mb-1">
+                Catalog Description / Philosophy
+              </label>
+              <textarea
+                id="catalogDescription"
+                value={catalogDescription}
+                onChange={(e) => setCatalogDescription(e.target.value)}
+                rows={4}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter your company philosophy, catalog description, or any text to display on the catalog title page..."
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                This text will appear on the title page of PDF catalogs
+              </p>
             </div>
 
             <button

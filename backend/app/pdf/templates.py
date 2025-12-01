@@ -233,6 +233,13 @@ class MinimalTemplate(PDFTemplate):
         story.append(Paragraph(company_name.upper(), s['title']))
         story.append(Spacer(1, 0.5*cm))
         story.append(Paragraph("CATALOG 2025", s['category']))
+        
+        # Описание каталога (если есть)
+        if self.settings.catalog_description:
+            story.append(Spacer(1, 1*cm))
+            desc_style = ParagraphStyle('CatalogDesc', fontName=self.fonts['main'], fontSize=10, textColor=Colors.MID_GREY, alignment=TA_CENTER, leading=16, leftIndent=2*cm, rightIndent=2*cm)
+            story.append(Paragraph(self.settings.catalog_description, desc_style))
+        
         story.append(PageBreak())
     
     def create_dessert_page(self, story: List, dessert: Dessert, styles: Dict) -> None:
@@ -314,6 +321,13 @@ class ModernTemplate(PDFTemplate):
         company_name = self.settings.company_name or "Dessert Catalog"
         story.append(Paragraph(company_name, 
             ParagraphStyle('T', fontName=self.fonts['serif_bold'], fontSize=40, alignment=TA_CENTER, textColor=Colors.DEEP_BLUE)))
+        
+        # Описание каталога (если есть)
+        if self.settings.catalog_description:
+            story.append(Spacer(1, 1.5*cm))
+            desc_style = ParagraphStyle('CatalogDesc', fontName=self.fonts['serif'], fontSize=12, textColor=Colors.MID_GREY, alignment=TA_CENTER, leading=18, leftIndent=2*cm, rightIndent=2*cm)
+            story.append(Paragraph(self.settings.catalog_description, desc_style))
+        
         story.append(PageBreak())
     
     def create_dessert_page(self, story: List, dessert: Dessert, styles: Dict) -> None:
@@ -420,6 +434,13 @@ class LuxuryTemplate(PDFTemplate):
         ]))
         t.hAlign = 'CENTER'
         story.append(t)
+        
+        # Описание каталога (если есть)
+        if self.settings.catalog_description:
+            story.append(Spacer(1, 1*cm))
+            desc_style = ParagraphStyle('CatalogDesc', fontName=self.fonts['serif'], fontSize=11, textColor=Colors.MID_GREY, alignment=TA_CENTER, leading=16, leftIndent=2*cm, rightIndent=2*cm)
+            story.append(Paragraph(self.settings.catalog_description, desc_style))
+        
         story.append(PageBreak())
     
     def create_dessert_page(self, story: List, dessert: Dessert, styles: Dict) -> None:
@@ -567,6 +588,12 @@ class ClassicTemplate(PDFTemplate):
         
         if self.settings.manager_contact:
             story.append(Paragraph(self.settings.manager_contact, styles['contact']))
+        
+        # Описание каталога (если есть)
+        if self.settings.catalog_description:
+            story.append(Spacer(1, 1.5*cm))
+            desc_style = ParagraphStyle('CatalogDesc', parent=styles['normal'], fontSize=11, alignment=TA_CENTER, leading=16, leftIndent=2*cm, rightIndent=2*cm)
+            story.append(Paragraph(self.settings.catalog_description, desc_style))
         
         story.append(PageBreak())
     

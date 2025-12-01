@@ -86,6 +86,7 @@ def login(
             logo_url=user.logo_url,
             company_name=user.company_name,
             manager_contact=user.manager_contact,
+            catalog_description=user.catalog_description,
             created_at=user.created_at
         )
     )
@@ -115,6 +116,7 @@ def login_json(credentials: UserLogin, db: Session = Depends(get_db)):
             logo_url=user.logo_url,
             company_name=user.company_name,
             manager_contact=user.manager_contact,
+            catalog_description=user.catalog_description,
             created_at=user.created_at
         )
     )
@@ -163,6 +165,7 @@ def update_email(
             logo_url=current_user.logo_url,
             company_name=current_user.company_name,
             manager_contact=current_user.manager_contact,
+            catalog_description=current_user.catalog_description,
             created_at=current_user.created_at
         )
     )
@@ -205,6 +208,7 @@ def update_password(
             logo_url=current_user.logo_url,
             company_name=current_user.company_name,
             manager_contact=current_user.manager_contact,
+            catalog_description=current_user.catalog_description,
             created_at=current_user.created_at
         )
     )
@@ -216,7 +220,7 @@ def update_company_profile(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Обновить профиль компании (логотип, название, контакты)"""
+    """Обновить профиль компании (логотип, название, контакты, описание)"""
     # Обновление полей профиля компании
     if profile_data.logo_url is not None:
         current_user.logo_url = profile_data.logo_url
@@ -224,6 +228,8 @@ def update_company_profile(
         current_user.company_name = profile_data.company_name
     if profile_data.manager_contact is not None:
         current_user.manager_contact = profile_data.manager_contact
+    if profile_data.catalog_description is not None:
+        current_user.catalog_description = profile_data.catalog_description
     
     db.commit()
     db.refresh(current_user)
@@ -239,6 +245,7 @@ def update_company_profile(
             logo_url=current_user.logo_url,
             company_name=current_user.company_name,
             manager_contact=current_user.manager_contact,
+            catalog_description=current_user.catalog_description,
             created_at=current_user.created_at
         )
     )

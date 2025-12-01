@@ -41,6 +41,8 @@ def export_pdf(
         settings.manager_contact = current_user.manager_contact
     if not settings.logo_url and current_user.logo_url:
         settings.logo_url = current_user.logo_url
+    if not settings.catalog_description and current_user.catalog_description:
+        settings.catalog_description = current_user.catalog_description
     
     # Generate PDF
     pdf_buffer = generate_pdf(desserts, settings)

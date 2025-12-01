@@ -22,6 +22,7 @@ export interface PDFExportSettings {
   company_name?: string;
   manager_contact?: string;
   logo_url?: string;
+  catalog_description?: string;
   template?: string;
 }
 
@@ -40,6 +41,7 @@ export interface User {
   logo_url?: string | null;
   company_name?: string | null;
   manager_contact?: string | null;
+  catalog_description?: string | null;
   created_at?: string;
 }
 
